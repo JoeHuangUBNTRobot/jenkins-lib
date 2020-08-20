@@ -11,7 +11,7 @@ def call(String project, String build_target, Map build_series=[:]) {
 		println "running ${project} productSeries: ${build_target}"
 		println "job_options: $job_options"
 
-		if(job_options.containsKey('job_artifact_dir') {
+		if(job_options.containsKey('job_artifact_dir')) {
 			job_artifact_dir = job_options['job_artifact_dir']
 			sh "mkdir -p $job_artifact_dir"
 		}
