@@ -51,7 +51,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					m.branch_name = env.BRANCH_NAME
 					m.build_number = env.BUILD_NUMBER
 					m.build_dir = "${m.name}-${m.build_number}"
-					if(job_options.containsKey('job_artifact_dir') {
+					if(job_options.containsKey('job_artifact_dir')) {
 						// job_artifact_dir is unique
 						m.fw_dir = job_options['job_artifact_dir'] + "/${m.name}"
 					} else {
