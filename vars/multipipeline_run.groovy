@@ -50,11 +50,11 @@ def call(String project, String build_target, Map build_series=[:]) {
 				if(job_options.containsKey('node')) {
 					def node_label = job_options['node'];
 					node("$node_label") {
-						archiveArtifacts artifacts: "$job_artifact_dir/*"
+						archiveArtifacts artifacts: "${env.WORKSPACE}/$job_artifact_dir/*"
 					}
 				} else {
 					node("fwteam") {
-						archiveArtifacts artifacts: "$job_artifact_dir/*"
+						archiveArtifacts artifacts: "${env.WORKSPACE}/$job_artifact_dir/*"
 					}
 				}
 			}
