@@ -1,7 +1,9 @@
-def job_options(String project)
+def get_job_options(String project)
 {
 	def options = [
-		debbox_builder: [job_artifact_dir: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}"],
+		debbox_builder: [
+			job_artifact_dir: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}"
+		]
 	]
 	
 	return options.get(project, [:])
@@ -40,7 +42,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			pre_checkout_steps: { m->
 				stage('pre_checkout_steps') {
 					echo "In pre_checkout_steps"
-					m.artifact_dir = "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}"
 				}
 				return true
 			},
@@ -52,7 +53,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					m.build_dir = "${m.name}-${m.build_number}"
 					if(job_options.containsKey('job_artifact_dir') {
 						// job_artifact_dir is unique
-						m.fw_dir = job_options['job_artifact_dir'] + "${m.name}"
+						m.fw_dir = job_options['job_artifact_dir'] + "/${m.name}"
 					} else {
 						// for unique dir
 						m.fw_dir = "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${m.name}"
