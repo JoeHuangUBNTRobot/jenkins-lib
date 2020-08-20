@@ -54,10 +54,12 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					m.build_dir = "${m.name}-${m.build_number}"
 					if(job_options.containsKey('job_artifact_dir')) {
 						// job_artifact_dir is unique
-						m.fw_dir = job_options['job_artifact_dir'] + "/${m.name}"
+                        m.fw_dir_prefix = job_options['job_artifact_dir']
+						m.fw_dir = "${m.fw_dir_prefix}/${m.name}"
 					} else {
 						// for unique dir
-						m.fw_dir = "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${m.name}"
+                        m.fw_dir_prefix = "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}"
+						m.fw_dir = "${m.fw_dir_prefix}_${m.name}"
 					}
 					sh "mkdir -p ${m.build_dir} ${m.fw_dir}"
                     sh "ls -alhi"
@@ -74,7 +76,14 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             sh "cp make.log /root/artifact_dir/"
                    		}
 					}
-				}
+                }
+                stage("Artifact ${m.name}") {
+					if(job_options.containsKey('job_artifact_dir')) {
+					    archiveArtifacts artifacts: "${m.fw_dir_prefix}/**"
+                    } else {
+					    archiveArtifacts artifacts: "${m.fw_dir}/**"
+                    }
+                }
 				return true
 			},
 			archive_steps: { m->

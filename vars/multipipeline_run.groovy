@@ -46,6 +46,7 @@ def call(String project, String build_target, Map build_series=[:]) {
 		} catch (Exception e) {
 			throw e
 		} finally {
+/*
 			if(job_options.containsKey('job_artifact_dir')) {
 				if(job_options.containsKey('node')) {
 					def node_label = job_options['node'];
@@ -58,7 +59,7 @@ def call(String project, String build_target, Map build_series=[:]) {
 					}
 				}
 			}
-
+*/
 			// TODO: notification or something else 
 			// def job_names = parallel_jobs.keySet().sort()
 			// // summary row 
