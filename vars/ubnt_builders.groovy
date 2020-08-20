@@ -60,6 +60,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						m.fw_dir = "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${m.name}"
 					}
 					sh "mkdir -p ${m.build_dir} ${m.fw_dir}"
+                    sh "ls -alhi"
 					m.fw_dir = sh_output("readlink -f ${m.fw_dir}")
 				}
 				stage("Build ${m.name}") {
