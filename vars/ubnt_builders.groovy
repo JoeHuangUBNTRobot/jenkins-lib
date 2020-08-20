@@ -3,6 +3,7 @@ def get_job_options(String project)
 	def options = [
 		debbox_builder: [
 			job_artifact_dir: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}"
+			node: 'debbox'
 		]
 	]
 	
