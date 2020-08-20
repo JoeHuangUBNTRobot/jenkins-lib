@@ -48,7 +48,7 @@ def debbox_builder(String productSeries, Map build_series=[:])
                             withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
                                 sh "AWS_PROFILE=default make PRODUCT=$target 2>&1 | tee make.log"
                             }
-                            sh "cp -r build/target-${m.target}/dist/${name}* /root/artifact_dir/"
+                            sh "cp -r build/target-${m.name}/dist/${name}* /root/artifact_dir/"
                             sh "cp make.log /root/artifact_dir/"
                    		}
 					}
