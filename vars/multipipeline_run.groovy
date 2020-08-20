@@ -13,7 +13,7 @@ def call(String project, String build_target, Map build_series=[:]) {
 
 		if(job_options.containsKey('job_artifact_dir')) {
 			job_artifact_dir = job_options['job_artifact_dir']
-			sh "mkdir -p $job_artifact_dir"
+			// sh "mkdir -p $job_artifact_dir"
 		}
 
 		def build_jobs = ubnt_builders."${project}"(build_target, job_options, build_series)
