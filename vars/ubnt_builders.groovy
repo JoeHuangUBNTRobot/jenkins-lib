@@ -29,7 +29,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 		build_series = debbox_series.clone()
 	}
 	verify_required_params("debbox_builder", build_series, [ productSeries ])
-	echo 'build $productSeries'
+	echo "build $productSeries"
 
 	def build_product = build_series[productSeries]
 	def build_jobs = []
@@ -40,7 +40,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			name: target_map.product,
 			resultpath: target_map.resultpath,
 			execute_order: 1,
-			artifact_dir: target,
+			artifact_dir: target_map.product,
 			pre_checkout_steps: { m->
 				stage('pre_checkout_steps') {
 					echo "In pre_checkout_steps"
