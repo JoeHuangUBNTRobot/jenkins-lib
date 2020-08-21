@@ -16,12 +16,12 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	def debbox_series = [
 		UCK: [
 			// UCK: 'unifi-cloudkey.mtk',
-			UCKG2: 'cloudkey-g2.apq8053',
-			UCKP: 'cloudkey-plus.apq8053'
+			UCKG2: [product: 'cloudkey-g2.apq8053', resultpath: 'target-cloudkey-g2.apq8053'],
+			UCKP: [product: 'cloudkey-plus.apq8053', resultpath: 'target-cloudkey-plus.apq8053']
 		],
 		UNVR: [
-			UNVR: 'unifi-nvr4-protect.alpine',
-			UNVRPRO: 'unifi-nvr-pro-protect.alpine'
+			UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine'],
+			UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine']
 		]
 	]
 
@@ -34,10 +34,11 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	def build_product = build_series[productSeries]
 	def build_jobs = []
 
-	build_product.each { name, target ->
+	build_product.each { name, target_map ->
 		build_jobs.add([
 			node: 'debbox',
-			name: target,
+			name: target_map.product,
+			resultpath: target_map.resultpath,
 			execute_order: 1,
 			artifact_dir: target,
 			pre_checkout_steps: { m->
@@ -70,9 +71,9 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						docker.image('debbox-arm64:v3').inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.fw_dir:/root/artifact_dir:rw") {
                             checkout scm 
                             withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
-                                sh "AWS_PROFILE=default make PRODUCT=$target 2>&1 | tee make.log"
+                                sh "AWS_PROFILE=default make PRODUCT=${m.name} 2>&1 | tee make.log"
                             }
-                            sh "cp -r build/target-${m.name}/dist/${name}* /root/artifact_dir/"
+                            sh "cp -r build/${resultpath}/dist/${name}* /root/artifact_dir/"
                             sh "cp make.log /root/artifact_dir/"
                    		}
 					}
