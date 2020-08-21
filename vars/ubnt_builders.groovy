@@ -67,7 +67,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					m.fw_dir = sh_output("readlink -f ${m.fw_dir}")
 				}
 				stage("Build ${m.name}") {
-					dir("${m.build_dir}") {
+					dir_cleanup("${m.build_dir}") {
 						docker.image('debbox-arm64:v3').inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.fw_dir:/root/artifact_dir:rw") {
                             checkout scm 
                             withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
@@ -76,6 +76,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             sh "cp -r build/${m.resultpath}/dist/${name}* /root/artifact_dir/"
                             sh "cp make.log /root/artifact_dir/"
                    		}
+                   		deleteDir()
 					}
                 }
                 stage("Artifact ${m.name}") {
