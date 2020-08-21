@@ -35,40 +35,41 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	def build_jobs = []
 
 	build_product.each { name, target_map ->
+
+		def artifact
+		if(job_options.containsKey('job_artifact_dir')) {
+			artifact = job_options.job_artifact_dir
+		} else {
+			artifact = "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${m.name}"
+		}
+
 		build_jobs.add([
 			node: 'debbox',
 			name: target_map.product,
 			resultpath: target_map.resultpath,
 			execute_order: 1,
-			artifact_dir: target_map.product,
+			artifact_dir: artifact,
 			pre_checkout_steps: { m->
-				stage('pre_checkout_steps') {
-					echo "In pre_checkout_steps"
-				}
+				
+				// do whatever you want before checkout step
+				
 				return true
 			},
 			build_steps: { m->
-				stage("Prepare ${m.name}") {
+				stage("Pre-build ${m.name} stage") {
 					
-					m.branch_name = env.BRANCH_NAME
+					// do whatever you want before building process
+
 					m.build_number = env.BUILD_NUMBER
 					m.build_dir = "${m.name}-${m.build_number}"
-					if(job_options.containsKey('job_artifact_dir')) {
-						// job_artifact_dir is unique
-                        m.fw_dir_prefix = job_options['job_artifact_dir']
-						m.fw_dir = "${m.fw_dir_prefix}/${m.name}"
-					} else {
-						// for unique dir
-                        m.fw_dir_prefix = "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}"
-						m.fw_dir = "${m.fw_dir_prefix}_${m.name}"
-					}
-					sh "mkdir -p ${m.build_dir} ${m.fw_dir}"
-                    sh "ls -alhi"
-					m.fw_dir = sh_output("readlink -f ${m.fw_dir}")
+					m.docker_artifact_path = m.artifact_dir + "/" + m.name
+
+					sh "mkdir -p ${m.build_dir} ${m.docker_artifact_path}"
+					m.docker_artifact_path = sh_output("readlink -f ${m.docker_artifact_path}")
 				}
 				stage("Build ${m.name}") {
 					dir_cleanup("${m.build_dir}") {
-						docker.image('debbox-arm64:v3').inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.fw_dir:/root/artifact_dir:rw") {
+						docker.image('debbox-arm64:v3').inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.docker_artifact_path:/root/artifact_dir:rw") {
                             checkout scm 
                             withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
                                 sh "AWS_PROFILE=default make PRODUCT=${m.name} 2>&1 | tee make.log"
@@ -81,21 +82,14 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                    		deleteDir()
 					}
                 }
-                stage("Artifact ${m.name}") {
-					if(job_options.containsKey('job_artifact_dir')) {
-					    archiveArtifacts artifacts: "${m.fw_dir_prefix}/**"
-                    } else {
-					    archiveArtifacts artifacts: "${m.fw_dir}/**"
-                    }
-                }
 				return true
 			},
 			archive_steps: { m->
-				echo 'mount nas and cp our fw-image'
-				// TODO mount nas
-				// sh "tar -zcf ${m.fw_dir}"
+				stage("Artifact ${m.name}") {
+					archiveArtifacts artifacts: "${m.artifact_dir}/**"
+                }
+				// TODO: upload image to our server 
 			}
-
 		])
 
 	}
