@@ -75,6 +75,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             }
                             sh "cp -r build/${m.resultpath}/dist/${name}* /root/artifact_dir/"
                             sh "cp make.log /root/artifact_dir/"
+                            // In order to cleanup the dl and build directory 
+                            sh "chmod -R 777 ."
                    		}
                    		deleteDir()
 					}
