@@ -1,7 +1,6 @@
 def call(String project, String build_target, Map build_series=[:], Map job_options=[:]) {
 	
 	timestamps {
-		def job_options = [:]
 		def parallel_jobs = [:]
 		
 		// fill job options here
