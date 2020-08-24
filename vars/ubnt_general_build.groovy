@@ -32,10 +32,11 @@ def call(Map args)
 							m['pre_checkout_steps'](m)
 						}
 						// do build_steps
-						m['build_steps'](m)
+						m.build_status = m['build_steps'](m)
 					}
 				} catch (Exception e) {
 					echo "Caught build Exception ${e}"
+					m.build_status = false
 					throw e
 				} finally {
 					try {

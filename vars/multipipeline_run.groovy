@@ -1,29 +1,21 @@
-def call(String project, String build_target, Map build_series=[:]) {
+def call(String project, String build_target, Map build_series=[:], Map job_options=[:]) {
 	
 	timestamps {
 		def job_options = [:]
 		def parallel_jobs = [:]
-		def job_artifact_dir =''
 		
 		// fill job options here
-		job_options = ubnt_builders.get_job_options(project)
+		job_options << ubnt_builders.get_job_options(project)
 
 		println "running ${project} productSeries: ${build_target}"
 		println "job_options: $job_options"
 
-		if(job_options.containsKey('job_artifact_dir')) {
-			job_artifact_dir = job_options['job_artifact_dir']
-			// sh "mkdir -p $job_artifact_dir"
-		}
-
 		def build_jobs = ubnt_builders."${project}"(build_target, job_options, build_series)
-		// def build_map = [debbox_builder:{b_t, b_s->debbox_builder(b_t, b_s)}] 
-		// def build_jobs = build_map[project](build_target, build_series)
 		
 		for (build_job in build_jobs) {
-			// [build_job: m, closure]
 			parallel_jobs[build_job.name] = ubnt_general_build(build_job)
 		}
+
 		try {
 			def execute_orders = parallel_jobs.collect{ it.value.build_job.execute_order}
 			def max_execute_order = execute_orders.max{ it }
@@ -46,26 +38,23 @@ def call(String project, String build_target, Map build_series=[:]) {
 		} catch (Exception e) {
 			throw e
 		} finally {
-/*
-			if(job_options.containsKey('job_artifact_dir')) {
-				if(job_options.containsKey('node')) {
-					def node_label = job_options['node'];
-					node("$node_label") {
-						archiveArtifacts artifacts: "$job_artifact_dir/**"
-					}
-				} else {
-					node("fwteam") {
-						archiveArtifacts artifacts: "$job_artifact_dir/**"
-					}
-				}
-			}
-*/
 			// TODO: notification or something else 
-			// def job_names = parallel_jobs.keySet().sort()
-			// // summary row 
-			// job_names.each{ k-> 
-			// 	def build_job = parallel_jobs[k].build_job
-			// }
+			def job_names = parallel_jobs.keySet().sort()
+			def mail_body=''
+			def project_build_status='Success'
+			job_names.each{ k-> 
+				def build_job = parallel_jobs[k].build_job
+				if (build_job.build_status == false) {
+					project_build_status = 'Failed'
+				}
+				mail_body = mail_body + build_job.name + '--- ' +  build_job.build_status + '\n'
+			}
+
+			if (m.is_atag || (job_options.containsKey('mail') && job_options.mail)) {
+				// mail notification
+				mail bcc:'', cc:'', from:'', to:'steve.chen@ui.com',replyTo:'', subject: "${env.JOB_NAME}--${project_build_status}", body: "${mail_body}"
+				// mail bcc: '', body: "$m.branch_name", cc: '', from: '', replyTo: '', subject: 'test Mail', to: 'steve.chen@ui.com'
+			}
 
 		}
 	} // timestamps

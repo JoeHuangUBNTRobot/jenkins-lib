@@ -49,6 +49,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			resultpath: target_map.resultpath,
 			execute_order: 1,
 			artifact_dir: artifact,
+			build_status:false,
 			pre_checkout_steps: { m->
 				
 				// do whatever you want before checkout step
