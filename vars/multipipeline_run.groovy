@@ -41,15 +41,19 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 			def job_names = parallel_jobs.keySet().sort()
 			def mail_body=''
 			def project_build_status='Success'
+			def tag_build=false
 			job_names.each{ k-> 
 				def build_job = parallel_jobs[k].build_job
 				if (build_job.build_status == false) {
 					project_build_status = 'Failed'
 				}
+				if(build_job.is_atag) {
+					tag_build = true
+				}
 				mail_body = mail_body + build_job.name + '--- ' +  build_job.build_status + '\n'
 			}
 
-			if (m.is_atag || (job_options.containsKey('mail') && job_options.mail)) {
+			if (tag_build || (job_options.containsKey('mail') && job_options.mail)) {
 				// mail notification
 				mail bcc:'', cc:'', from:'', to:'steve.chen@ui.com',replyTo:'', subject: "${env.JOB_NAME}--${project_build_status}", body: "${mail_body}"
 				// mail bcc: '', body: "$m.branch_name", cc: '', from: '', replyTo: '', subject: 'test Mail', to: 'steve.chen@ui.com'
