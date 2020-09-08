@@ -622,7 +622,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 			archive_steps: { m ->
 				stage("Artifact ${m.name}") {
 					if (fileExists("$m.artifact_dir/${m.artifact_prefix}/make.log")) {
-						archiveArtifacts artifacts: "${m.artifact_dir}/${m.artifact_prefix}/	**"
+						archiveArtifacts artifacts: "${m.artifact_dir}/${m.artifact_prefix}/**"
 						if (m.containsKey('upload_info')) {
 							def upload_path = m.upload_info.path.join('/')
 							println "upload: $upload_path , artifact_path: ${m.artifact_dir}/${m.artifact_prefix}"
