@@ -1,0 +1,53 @@
+def generate_buildinfo(Map git_args) {
+	println git_args	
+	verify_required_params('generate_buildinfo', git_args, ['repository', 'is_pr', 'is_tag', 'ref', 'rev_num'])
+	def output = [:]
+	println git_args
+	def ref_path = []+ git_args.repository 
+	def ref = git_args.ref
+	def ref_sha = git_helper.sha(ref)
+	def email_cmd
+	def data_cmd
+
+	if(git_args.is_tag) {
+		email_cmd = "git tag -l --format='%(taggeremail)' ${ref}"
+		date_cmd = "git tag -l --format='%(taggerdate:format:%F_%H%M%S)' ${ref}"
+
+		def ref_tag = ref.tokenize('/').pop()
+		ref_path = ref_path + 'tags'+ ref_tag
+	} else {
+		email_cmd = "git log --pretty=format:%ae -1 ${ref_sha}"
+		date_cmd = "git log --date=format:%F_%H%M%S --pretty=format:%ad -1 ${ref_sha}"
+		
+		if (git_args.is_pr) {
+			ref_path = ref_path + 'prs' + "PR-${env.CHANGE_ID}"
+		} else {
+			def branch = ref.replaceAll("^origin/", "")
+			ref_path = ref_path + 'heads' + branch
+		}
+	}
+
+	println "PATH" + ref_path.join('/')
+
+	def email = sh_output(email_cmd).replaceAll("(^<|>\$)", "")
+	def date = sh_output(date_cmd)
+	def username = safe_regex(email, /^\d*\+?(.*)@(ui|ubnt|users.noreply.github).com$/).with { it ? it[0][1] : email }
+	def short_sha = git_helper.short_sha(ref_sha)
+
+	def output_dir = [git_args.rev_num, BUILD_NUMBER, date, username, git_helper.short_sha(ref_sha)].join('_')
+	output.path = ref_path + output_dir
+	return output
+}
+
+
+def upload(src_path, dst_path)
+{
+	def nasdir = "$HOME/builder"
+	def notmounted = sh_output.status_code("mountpoint -q $nasdir")
+	if(!notmounted) {
+		def nas_path = "$nasdir/$dst_path"
+		println "upload from $src_path to $nas_path"
+		sh "mkdir -p $nas_path"
+		sh "cp -rp $src_path $nas_path"
+	}
+}
