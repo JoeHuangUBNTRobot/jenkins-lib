@@ -241,7 +241,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	def build_jobs = []
 
 	build_product.each { name, target_map ->
-
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
 			name: target_map.product,
@@ -251,25 +250,24 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			build_status:false,
 			upload: job_options.upload ?: false,
 			pre_checkout_steps: { m->
-			// do whatever you want before checkout step
-			sh 'export'								
-			return true
+				// do whatever you want before checkout step
+				sh 'export'								
+				return true
 			},
 			build_steps: { m->
 				stage("Pre-build ${m.name} stage") {
 
-				// do whatever you want before building process
-				m.build_number = env.BUILD_NUMBER
-				m.build_dir = "${m.name}-${m.build_number}"
-				m.docker_artifact_path = m.artifact_dir + "/" + m.name
+					// do whatever you want before building process
+					m.build_number = env.BUILD_NUMBER
+					m.build_dir = "${m.name}-${m.build_number}"
+					m.docker_artifact_path = m.artifact_dir + "/" + m.name
 
-				sh "mkdir -p ${m.build_dir} ${m.docker_artifact_path}"
-				m.docker_artifact_path = sh_output("readlink -f ${m.docker_artifact_path}")
+					sh "mkdir -p ${m.build_dir} ${m.docker_artifact_path}"
+					m.docker_artifact_path = sh_output("readlink -f ${m.docker_artifact_path}")
 				}
 				stage("Build ${m.name}") {
 					dir_cleanup("${m.build_dir}") {
 						docker.image('debbox-arm64:v3').inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.docker_artifact_path:/root/artifact_dir:rw") {
-
 							/*
 							 * tag build var: 
 							 * TAG_NAME: unifi-cloudkey/v1.1.9
@@ -288,51 +286,49 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 							 *     tag: unifi-cloudkey/v1.1.9 (TAG_NAME)
 							 *     branch_name (feature/unifi-core-integration) 
 							 */
-							 def co_map = checkout scm
-							 def url = co_map.GIT_URL
-							 def git_args = git_helper.split_url(url)
-							 def repository = git_args.repository
-							 echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
-							 git_args.revision = git_helper.sha()
-							 git_args.rev_num = git_helper.rev()
-
-							 def is_pr = env.getProperty("CHANGE_ID") != null
-							 def is_atag = env.getProperty("TAG_NAME") != null
-							 if (is_pr && is_atag) {
-							 	error "Unexpected environment, cannot be both PR and TAG"
-							 }
-
-							 def ref
-							 if (is_atag) {
-							 	ref = TAG_NAME
-							 	git_helper.verify_is_atag(ref)
-							 	git_args.local_branch = ref
-							 	} else {
-							 		ref = git_helper.current_branch()
-							 		if (!ref || ref == 'HEAD') {
-							 			ref = "origin/${BRANCH_NAME}"
-							 			} else {
-							 				git_args.local_branch = ref
-							 			}
-							 		}
-							 		git_args.is_pr = is_pr
-							 		git_args.is_tag = is_atag
-							 		git_args.ref = ref
-							 		m['git_args'] = git_args.clone()
-							 		m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
-							 		print m.upload_info
-
-							 		withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
-							 			sh "AWS_PROFILE=default make PRODUCT=${m.name} 2>&1 | tee make.log"
-							 		}
-							 		sh "cp -r build/${m.resultpath}/dist/${name}* /root/artifact_dir/"
-							 		sh "cp make.log /root/artifact_dir/"
-
-                            // In order to cleanup the dl and build directory 
-                            sh "chmod -R 777 ."
-                        }
-                        deleteDir()
-                    }
+							def co_map = checkout scm
+							def url = co_map.GIT_URL
+							def git_args = git_helper.split_url(url)
+							def repository = git_args.repository
+							echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
+							git_args.revision = git_helper.sha()
+							git_args.rev_num = git_helper.rev()
+							def is_pr = env.getProperty("CHANGE_ID") != null
+							def is_atag = env.getProperty("TAG_NAME") != null
+							if (is_pr && is_atag) {
+								error "Unexpected environment, cannot be both PR and TAG"
+							}
+							def ref
+							if (is_atag) {
+								ref = TAG_NAME
+								if (productSeries != 'UNVR') {
+									git_helper.verify_is_atag(ref)
+								}
+								git_args.local_branch = ref
+							} else {
+							 	ref = git_helper.current_branch()
+							 	if (!ref || ref == 'HEAD') {
+							 		ref = "origin/${BRANCH_NAME}"
+						 		} else {
+						 			git_args.local_branch = ref
+						 		}
+						 	}
+						 	git_args.is_pr = is_pr
+						 	git_args.is_tag = is_atag
+						 	git_args.ref = ref
+						 	m['git_args'] = git_args.clone()
+						 	m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
+						 	print m.upload_info
+						 	withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
+						 		sh "AWS_PROFILE=default make PRODUCT=${m.name} 2>&1 | tee make.log"
+						 	}
+						 	sh "cp -r build/${m.resultpath}/dist/${name}* /root/artifact_dir/"
+						 	sh "cp make.log /root/artifact_dir/"
+		                    // In order to cleanup the dl and build directory 
+	                        sh "chmod -R 777 ."
+        	            }
+            	        deleteDir()
+                	}
                 }
                 return true
             },
