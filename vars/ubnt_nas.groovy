@@ -29,7 +29,7 @@ def generate_buildinfo(Map git_args) {
 
 	def email = sh_output(email_cmd).replaceAll("(^<|>\$)", "")
 	def date = sh_output(date_cmd)
-	def username = safe_regex(email, /^\d*\+?(.*)@(ui|ubnt|users.noreply.github).com$/).with { it ? it[0][1] : email }
+	def username = safe_regex(email, /^\d*\+?(.*)@(tpe-unifi-sqa.rad.ubnt|ui|ubnt|users.noreply.github).com$/).with { it ? it[0][1] : email }
 	def short_sha = git_helper.short_sha(ref_sha)
 
 	def output_dir = [git_args.rev_num, BUILD_NUMBER, date, username, git_helper.short_sha(ref_sha)].join('_')
