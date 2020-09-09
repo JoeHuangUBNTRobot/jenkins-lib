@@ -6,19 +6,17 @@ def generate_buildinfo(Map git_args) {
 	def ref_path = []+ git_args.repository 
 	def ref = git_args.ref
 	def ref_sha = git_helper.sha(ref)
-	def email_cmd
-	def data_cmd
+	def email_cmd = "git log --pretty=format:%ae -1 ${ref_sha}"
+	def date_cmd = "git log --date=format:%F_%H%M%S --pretty=format:%ad -1 ${ref_sha}"
 
 	if(git_args.is_tag) {
-		email_cmd = "git tag -l --format='%(taggeremail)' ${ref}"
-		date_cmd = "git tag -l --format='%(taggerdate:format:%F_%H%M%S)' ${ref}"
-
+		if (git_args.is_atag) {
+			email_cmd = "git tag -l --format='%(taggeremail)' ${ref}"
+			date_cmd = "git tag -l --format='%(taggerdate:format:%F_%H%M%S)' ${ref}"
+		}
 		def ref_tag = ref.tokenize('/').pop()
 		ref_path = ref_path + 'tags'+ ref_tag
 	} else {
-		email_cmd = "git log --pretty=format:%ae -1 ${ref_sha}"
-		date_cmd = "git log --date=format:%F_%H%M%S --pretty=format:%ad -1 ${ref_sha}"
-		
 		if (git_args.is_pr) {
 			ref_path = ref_path + 'prs' + "PR-${env.CHANGE_ID}"
 		} else {

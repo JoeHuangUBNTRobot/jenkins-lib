@@ -294,16 +294,21 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 							git_args.revision = git_helper.sha()
 							git_args.rev_num = git_helper.rev()
 							def is_pr = env.getProperty("CHANGE_ID") != null
+							def is_tag = env.getProperty("TAG_NAME") != null
 							def is_atag = env.getProperty("TAG_NAME") != null
 							if (is_pr && is_atag) {
 								error "Unexpected environment, cannot be both PR and TAG"
 							}
 							def ref
-							if (is_atag) {
+							if (is_tag) {
 								ref = TAG_NAME
-								if (productSeries != 'UNVR') {
+								try {
 									git_helper.verify_is_atag(ref)
+								} catch (all) {
+									println "catch error: $all"
+									is_atag = false
 								}
+								println "tag build: istag: $is_tag, is_atag:$is_atag"
 								git_args.local_branch = ref
 							} else {
 							 	ref = git_helper.current_branch()
@@ -314,7 +319,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						 		}
 						 	}
 						 	git_args.is_pr = is_pr
-						 	git_args.is_tag = is_atag
+						 	git_args.is_tag = is_tag
+						 	git_args.is_atag = is_atag
 						 	git_args.ref = ref
 						 	m['git_args'] = git_args.clone()
 						 	m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
