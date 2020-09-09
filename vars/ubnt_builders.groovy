@@ -227,7 +227,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 		UNVR: 
 		[
 			UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine'],
-			UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine']
+			UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine'],
+			UNVRAI: [product: 'unifi-nvr-ai-protect.alpine', resultpath:'target-unifi-nvr-ai.alpine']
 		]
 	]
 
@@ -531,7 +532,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 
 	verify_required_params('amaz_alpinev2_boot_builder', job_options, ['name'])
 
-	amaz_alpinev2_boot_config = [ubnt_nas:'5', ubnt_nas_pro:'2', ubnt_nas_ai:'2']
+	amaz_alpinev2_boot_config = [ubnt_nas:'5', ubnt_nas_pro:'2', ubnt_nas_ai:'3']
 	
 	
 	if (build_config.size() > 0) {
