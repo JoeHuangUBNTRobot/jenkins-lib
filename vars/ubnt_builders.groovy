@@ -319,6 +319,15 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						 			git_args.local_branch = ref
 						 		}
 						 	}
+						 	// decide release build logic
+						 	def is_release = false
+						 	if (is_tag) {
+						 		if(is_atag) {
+						 			is_release = true
+						 		} else {
+						 			is_release = TAG_NAME.contains("release")
+						 		}
+						 	}
 						 	git_args.is_pr = is_pr
 						 	git_args.is_tag = is_tag
 						 	git_args.is_atag = is_atag
@@ -327,7 +336,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						 	m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						 	print m.upload_info
 						 	withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
-						 		sh "AWS_PROFILE=default make PRODUCT=${m.name} 2>&1 | tee make.log"
+						 		sh "AWS_PROFILE=default make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
 						 	}
 						 	sh "cp -r build/${m.resultpath}/dist/${name}* /root/artifact_dir/"
 						 	sh "cp make.log /root/artifact_dir/"
