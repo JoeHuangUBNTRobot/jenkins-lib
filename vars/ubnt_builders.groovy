@@ -228,7 +228,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 		[
 			UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine'],
 			UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine'],
-			UNVRAI: [product: 'unifi-nvr-ai-protect.alpine', resultpath:'target-unifi-nvr-ai.alpine']
+			UNVRAI: [product: 'unifi-nvr-ai-protect.alpine', resultpath:'target-unifi-nvr-ai.alpine'],
+			UNVRFCD: [product: 'unifi-nvr4-fcd.alpine', resultpath:'target-unifi-nvr4.alpine'],
+			UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine'],
+			UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine']
 		]
 	]
 
@@ -338,8 +341,14 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						 	withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
 						 		sh "AWS_PROFILE=default make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
 						 	}
+
 						 	sh "cp -r build/${m.resultpath}/dist/${name}* /root/artifact_dir/"
 						 	sh "cp make.log /root/artifact_dir/"
+						 	if (productSeries == "UNVR") {
+						 		sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
+						 		sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
+						 		sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-4.1.37-ubnt /root/artifact_dir/"
+						 	}
 		                    // In order to cleanup the dl and build directory 
 	                        sh "chmod -R 777 ."
         	            }
@@ -348,15 +357,18 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                 }
                 return true
             },
-            archive_steps: { m->				
-            	stage("Artifact ${m.name}") {
-            		archiveArtifacts artifacts: "${m.artifact_dir}/**"
-            	}
+            archive_steps: { m->
             	stage("Upload to server") {
             		if (m.upload && m.containsKey('upload_info')) {
             			def upload_path = m.upload_info.path.join('/')
             			ubnt_nas.upload(m.docker_artifact_path, upload_path)
             		}
+            		sh "rm {m.docker_artifact_path}/uImage || true"
+            		sh "rm {m.docker_artifact_path}/vmlinux || true"
+            		sh "rm {m.docker_artifact_path}/vmlinuz-4.1.37-ubnt || true"
+            	}
+            	stage("Artifact ${m.name}") {
+            		archiveArtifacts artifacts: "${m.artifact_dir}/**"
             	}
             }
         ])
