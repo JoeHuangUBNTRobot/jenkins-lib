@@ -342,7 +342,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						 		sh "AWS_PROFILE=default make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
 						 	}
 
-						 	sh "cp -r build/${m.resultpath}/dist/${name}* /root/artifact_dir/"
+						 	sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
 						 	sh "cp make.log /root/artifact_dir/"
 						 	if (productSeries == "UNVR") {
 						 		sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
