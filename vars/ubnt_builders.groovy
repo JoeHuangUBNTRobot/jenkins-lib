@@ -553,9 +553,9 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 
 	verify_required_params('amaz_alpinev2_boot_builder', job_options, ['name'])
 
-	amaz_alpinev2_boot_config = [ubnt_nas:'5', ubnt_nas_pro:'2', ubnt_nas_ai:'3']
-	
-	
+	amaz_alpinev2_boot_config = [ubnt_nas:'5', ubnt_nas_pro:'2', ubnt_nas_ai:'3', ubnt_unvr_all:'1']
+
+
 	if (build_config.size() > 0) {
 		if(build_config.containsKey(build_target)) {
 			config.put(build_target, build_config[build_target])
