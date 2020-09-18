@@ -202,8 +202,9 @@ def get_job_options(String project)
 							m.pkginfo.each { pkgname, pkgattr->
 								def src_path = "${m.absolute_artifact_dir}/${pkgattr.name}*"
 								def dst_path = "${pkgattr.name}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
+								def latest_path = "${pkgattr.name}/${pkgattr.arch}/latest"
 								sh "ls -alhi ${src_path}"
-								ubnt_nas.upload(src_path, dst_path)
+								ubnt_nas.upload(src_path, dst_path, latest_path)
 							}
 						}
 					}
@@ -361,7 +362,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             	stage("Upload to server") {
             		if (m.upload && m.containsKey('upload_info')) {
             			def upload_path = m.upload_info.path.join('/')
-            			ubnt_nas.upload(m.docker_artifact_path, upload_path)
+            			def latest_path = m.upload_info.latest_path.join('/')
+            			ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path)
             		}
             		if (productSeries == "UNVR") {
 	            		sh "rm ${m.docker_artifact_path}/uImage || true"
@@ -528,8 +530,9 @@ def debpkg(Map job_options, configs=["all"])
 						archiveArtifacts artifacts: "${m.artifact_dir}/**"
 						if (m.upload && m.containsKey('upload_info')) {
 							def upload_path = m.upload_info.path.join('/')
-							println "upload: $upload_path , artifact_path: ${m.artifact_dir}/*"
-							ubnt_nas.upload("${m.artifact_dir}/*", upload_path)
+							def latest_path = m.upload_info.latest_path.join('/')
+							println "upload: $upload_path ,artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
+							ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
 						}
 					}
 				}
@@ -607,14 +610,20 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 
 	    				def is_pr = env.getProperty("CHANGE_ID") != null
 	    				def is_atag = env.getProperty("TAG_NAME") != null
+	    				def is_tag = env.getProperty("TAG_NAME") != null
 	    				if (is_pr && is_atag) {
 	    					error "Unexpected environment, cannot be both PR and TAG"
 	    				}
-
 	    				def ref
 	    				if (is_atag) {
 	    					ref = TAG_NAME
-	    					git_helper.verify_is_atag(ref)
+	    					try {
+								git_helper.verify_is_atag(ref)
+							} catch (all) {
+								println "catch error: $all"
+								is_atag = false
+							}
+							println "tag build: istag: $is_tag, is_atag:$is_atag"    					
 	    					git_args.local_branch = ref
 	    				} else {
 							ref = git_helper.current_branch()
@@ -625,7 +634,8 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 							}
 						}
 						git_args.is_pr = is_pr
-						git_args.is_tag = is_atag
+						git_args.is_tag = is_tag
+						git_args.is_atag = is_atag
 						git_args.ref = ref
 						m['git_args'] = git_args.clone()
 						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
@@ -651,9 +661,10 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 						archiveArtifacts artifacts: "${m.artifact_dir}/${m.artifact_prefix}/**"
 						if (m.containsKey('upload_info')) {
 							def upload_path = m.upload_info.path.join('/')
-							println "upload: $upload_path , artifact_path: ${m.artifact_dir}/${m.artifact_prefix}"
+							def latest_path = m.upload_info.latest_path.join('/')
+							println "upload: $upload_path , artifact_path: ${m.artifact_dir}/${m.artifact_prefix}, latest_path: $latest_path"
 							if(m.upload) {
-								ubnt_nas.upload("${m.artifact_dir}/${m.artifact_prefix}", upload_path)
+								ubnt_nas.upload("${m.artifact_dir}/${m.artifact_prefix}", upload_path, latest_path)
 							}
 						}
 					}

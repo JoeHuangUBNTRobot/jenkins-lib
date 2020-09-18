@@ -3,7 +3,8 @@ def generate_buildinfo(Map git_args) {
 	verify_required_params('generate_buildinfo', git_args, ['repository', 'is_pr', 'is_tag', 'ref', 'rev_num'])
 	def output = [:]
 	println git_args
-	def ref_path = []+ git_args.repository 
+	def ref_path = [] + git_args.repository
+	def latest_path = [] + git_args.repository
 	def ref = git_args.ref
 	def ref_sha = git_helper.sha(ref)
 	def email_cmd = "git log --pretty=format:%ae -1 ${ref_sha}"
@@ -16,12 +17,15 @@ def generate_buildinfo(Map git_args) {
 		}
 		def ref_tag = ref.tokenize('/').pop()
 		ref_path = ref_path + 'tags'+ ref_tag
+		latest_path = latest_path + 'latest_tag'
 	} else {
 		if (git_args.is_pr) {
 			ref_path = ref_path + 'prs' + "PR-${env.CHANGE_ID}"
+			latest_path = latest_path + 'prs' + "PR-${env.CHANGE_ID}" + 'latest'
 		} else {
 			def branch = ref.replaceAll("^origin/", "")
 			ref_path = ref_path + 'heads' + branch
+			latest_path = latest_path + 'heads' + branch + 'latest'
 		}
 	}
 
@@ -34,11 +38,12 @@ def generate_buildinfo(Map git_args) {
 
 	def output_dir = [git_args.rev_num, BUILD_NUMBER, date, username, git_helper.short_sha(ref_sha)].join('_')
 	output.path = ref_path + output_dir
+	output.latest_path = latest_path.join('/')
 	return output
 }
 
 
-def upload(src_path, dst_path)
+def upload(src_path, dst_path, latest_path)
 {
 	def nasdir = "$HOME/builder"
 	def notmounted = sh_output.status_code("mountpoint -q $nasdir")
@@ -47,5 +52,6 @@ def upload(src_path, dst_path)
 		println "upload from $src_path to $nas_path"
 		sh "mkdir -p $nas_path"
 		sh "cp -rp $src_path $nas_path"
+		sh "ln -sT $nas_path $latest_path"
 	}
 }
