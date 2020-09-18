@@ -49,6 +49,7 @@ def upload(src_path, dst_path, latest_path)
 	def notmounted = sh_output.status_code("mountpoint -q $nasdir")
 	if(!notmounted) {
 		def nas_path = "$nasdir/$dst_path"
+		latest_path = "$nasdir/$latest_path"
 		println "upload from $src_path to $nas_path"
 		sh "mkdir -p $nas_path"
 		sh "cp -rp $src_path $nas_path"
