@@ -30,12 +30,6 @@ def rev(ref='HEAD', base_tag='BEGIN_BUILD')
 {
     def now = rev_list(ref)
     def begin = 0
-
-    try {
-        begin = rev_list(base_tag)
-    } catch (all) {
-        println "Could not count rev-list from '${base_tag}'"
-    }
     return "${now - begin}"
 }
 
