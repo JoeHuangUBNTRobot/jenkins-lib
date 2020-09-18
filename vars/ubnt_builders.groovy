@@ -363,9 +363,11 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             			def upload_path = m.upload_info.path.join('/')
             			ubnt_nas.upload(m.docker_artifact_path, upload_path)
             		}
-            		sh "rm {m.docker_artifact_path}/uImage || true"
-            		sh "rm {m.docker_artifact_path}/vmlinux || true"
-            		sh "rm {m.docker_artifact_path}/vmlinuz-4.1.37-ubnt || true"
+            		if (productSeries == "UNVR") {
+	            		sh "rm {m.docker_artifact_path}/uImage || true"
+	            		sh "rm {m.docker_artifact_path}/vmlinux || true"
+	            		sh "rm {m.docker_artifact_path}/vmlinuz-4.1.37-ubnt || true"
+            		}
             	}
             	stage("Artifact ${m.name}") {
             		archiveArtifacts artifacts: "${m.artifact_dir}/**"
