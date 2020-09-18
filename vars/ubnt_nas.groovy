@@ -38,7 +38,7 @@ def generate_buildinfo(Map git_args) {
 
 	def output_dir = [git_args.rev_num, BUILD_NUMBER, date, username, git_helper.short_sha(ref_sha)].join('_')
 	output.path = ref_path + output_dir
-	output.latest_path = latest_path.join('/')
+	output.latest_path = latest_path
 	return output
 }
 
