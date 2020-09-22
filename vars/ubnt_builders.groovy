@@ -238,6 +238,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			UNVRFCD: [product: 'unifi-nvr4-fcd.alpine', resultpath:'target-unifi-nvr4.alpine'],
 			UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine'],
 			UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine']
+		],
+		NX:
+		[
+			UNVRNX: [product: 'unifi-nvr-nx.nvidia', resultpath: 'target-unifi-nvr-nx.nvidia', additional_store: ["image/unvr-nx-image/uImage", "image/unvr-nx-image/rootfs.img", "image/unvr-nx-image/initrd.img-4.9.140-ubnt"]]
 		]
 	]
 
@@ -255,6 +259,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			node: job_options.node ?: 'debbox',
 			name: target_map.product,
 			resultpath: target_map.resultpath,
+			additional_store: target_map.additional_store ?: []
 			execute_order: 1,
 			artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
 			build_status:false,
@@ -277,7 +282,14 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 				}
 				stage("Build ${m.name}") {
 					dir_cleanup("${m.build_dir}") {
-						docker.image('debbox-arm64:v3').inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.docker_artifact_path:/root/artifact_dir:rw") {
+						def dockerImage
+						if (productSeries == "NX") {
+							dockerImage = docker.image('registry.ubnt.com.tw:6666/ubuntu:nx')	
+						} else {
+							dockerImage = docker.image('debbox-arm64:v3')
+						}
+
+						dockerImage.inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.docker_artifact_path:/root/artifact_dir:rw") {
 							/*
 							 * tag build var: 
 							 * TAG_NAME: unifi-cloudkey/v1.1.9
@@ -357,10 +369,15 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 
 						 	sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
 						 	sh "cp make.log /root/artifact_dir/"
+
 						 	if (productSeries == "UNVR") {
 						 		sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
 						 		sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
 						 		sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-4.1.37-ubnt /root/artifact_dir/"
+						 	}
+
+						 	m.additional_store.each { additional_file ->
+						 		sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
 						 	}
 		                    // In order to cleanup the dl and build directory 
 	                        sh "chmod -R 777 ."
@@ -382,6 +399,12 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	            		sh "rm ${m.docker_artifact_path}/vmlinux || true"
 	            		sh "rm ${m.docker_artifact_path}/vmlinuz-4.1.37-ubnt || true"
             		}
+            		/*
+            		m.additional_store.each { additional_file->
+            			filename = additional_file.tokenize('/').pop()
+            			sh "rm ${m.docker_artifact_path}/$filename || true"
+            		}
+            		*/
             	}
             	stage("Artifact ${m.name}") {
             		archiveArtifacts artifacts: "${m.artifact_dir}/**"
