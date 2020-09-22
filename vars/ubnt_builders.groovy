@@ -135,7 +135,7 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 				}
 	    	}
    	])
-	
+   	return build_jobs
 }
 /*
  * resultpath: the output dir that indicate where the binary generated
