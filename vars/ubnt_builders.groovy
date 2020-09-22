@@ -400,7 +400,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	            		sh "rm ${m.docker_artifact_path}/vmlinuz-4.1.37-ubnt || true"
             		}
                     if (productSeries == "NX") {
-                        sh "rm ${m.docker_artifact_path}/*.bin" || true
+                        sh "rm ${m.docker_artifact_path}/*.bin || true"
                     }
             		/*
             		m.additional_store.each { additional_file->
