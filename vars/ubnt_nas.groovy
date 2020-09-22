@@ -56,3 +56,16 @@ def upload(src_path, dst_path, latest_path)
 		sh "ln -sfT $nas_path $latest_path"
 	}
 }
+
+def get_fw_build_date(project_name, product_name)
+{
+	def nasdir = "$HOME/builder"
+	def fw_path = "$nasdir/$project_name/latest_tag/$product_name/FW.LATEST.bin"
+	fw_path = sh_output("readlink -f $fw_path")
+	def fw_name = fw_path.tokenize("/").pop()
+	def build_date_pattern = ~/(\d+)\.(\d+)\.bin$/
+	def matcher = (fw_name =~ build_date_pattern)
+	if (matcher.size() == 1) {
+		return matcher[0][1] +'.'+matcher[0][2]
+	}
+}

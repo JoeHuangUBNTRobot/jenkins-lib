@@ -45,6 +45,11 @@ def call(Map args)
 								m['archive_steps'](m)
 							}
 						}
+						if(m.containsKey('qa_test_steps')) {
+							stage("QA-Test ${m.name}") {
+								m['qa_test_steps'](m)
+							}
+						}
 					} catch (Exception e) {
 						echo "Caught archieve Exception ${e}"
 						throw e

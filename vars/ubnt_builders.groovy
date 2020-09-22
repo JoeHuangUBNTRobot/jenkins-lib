@@ -349,6 +349,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						 			is_release = TAG_NAME.contains("release")
 						 		}
 						 	}
+						 	m.is_release = is_release
 						 	git_args.is_pr = is_pr
 						 	git_args.is_tag = is_tag
 						 	git_args.is_atag = is_atag
@@ -369,7 +370,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 
 						 	sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
 						 	sh "cp make.log /root/artifact_dir/"
-
 						 	if (productSeries == "UNVR") {
 						 		sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
 						 		sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
@@ -414,7 +414,36 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             	}
             }
         ])
-
+	}
+	build_product.each { name, target_map ->
+		build_jobs.add([
+			node: job_options.node ?: 'debbox',
+			name: target_map.product,
+			execute_order: 2,
+	        build_steps: { m ->
+	        	// only UNVR can have the release flag
+	        	m.is_release = false
+	        	if (env.getProperty("TAG_NAME") != null) {
+	        		if (productSeries == "UNVR") {
+	        			if(TAG_NAME.contains("release")) {
+	        				m.is_release = true
+	        			}
+	        		} else {
+	        			m.is_release = true
+	        		}
+	        	}
+	        	return true
+	        },
+	        qa_test_steps: { m->
+	            if (m.name.contains("fcd") || productSeries != "UNVR" || !m.is_release)
+	                return
+	            build_date = ubnt_nas.get_fw_build_date('firmware.debbox', m.name)
+	            url_prefix = "http://tpe-judo.rad.ubnt.com/build/firmware.debbox/latest_tag"
+	            url = "$url_prefix/${m.name}/FW.LATEST.bin"
+	            echo "url: $url, build_date: $m.build_date" 
+			    sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com:8080/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$m.build_date --user scott:117c7831d9ba3fabf15b0a2b05e71f5cdb"
+			}
+		])
 	}
 	return build_jobs
 }
