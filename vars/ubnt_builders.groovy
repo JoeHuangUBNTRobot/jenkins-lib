@@ -701,7 +701,10 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 		upload: job_options.upload ?: false,
 		pre_checkout_steps: { m->
 			m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
-			m.upload_info.add([path: ["${m.name}", "arm64", "${m.build_dir}"], latest_path: ["${m.name}", "arm64", "latest"]])
+			m.upload_info = [ 
+				path: ["${m.name}", "arm64", "${m.build_dir}"], 
+				latest_path: ["${m.name}", "arm64", "latest"]
+			]
 		},
 		build_steps: { m ->
 			sh "mkdir -p ${m.artifact_dir}"
