@@ -723,7 +723,7 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 				bootload_path = sh_output("realpath $bootload_path")
 				unvr4_fcd_uImage = sh_output("realpath $unvr4_fcd_uImage")
 				unvrpro_fcd_uImage = sh_output("realpath $unvrpro_fcd_uImage")
-				unvrai_fcd_uImage = sh_output("realpath $unvrai_preload")
+				unvrai_fcd_uImage = sh_output("realpath $unvrai_fcd_uImage")
 
 				sh "echo boot_img: $bootload_path >> make.log"
 				sh "echo unvr4_fcd: $unvr4_fcd_uImage >> make.log"
