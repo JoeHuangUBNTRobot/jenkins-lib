@@ -259,7 +259,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			node: job_options.node ?: 'debbox',
 			name: target_map.product,
 			resultpath: target_map.resultpath,
-			additional_store: target_map.additional_store ?: []
+			additional_store: target_map.additional_store ?: [],
 			execute_order: 1,
 			artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
 			build_status:false,
