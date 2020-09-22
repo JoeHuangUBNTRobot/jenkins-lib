@@ -61,7 +61,7 @@ def get_job_options(String project)
 		preload_image_builder:[
 			name: 'preload_image',
 			node: 'fwteam',
-			upload: false
+			upload: true
 		]
 	]
 	
