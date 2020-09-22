@@ -708,6 +708,7 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 		},
 		build_steps: { m ->
 			sh "mkdir -p ${m.artifact_dir}"
+			m.artifact_dir_absolute_path = sh_output("readlink -f ${m.artifact_dir}")
 			def deleteWsPath
 			ws("${m.build_dir}") {
 				def co_map = checkout scm
@@ -731,8 +732,8 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 				sh "echo ai_fcd: $unvrai_fcd_uImage >> make.log"
 				sh "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload $unvrpro_fcd_uImage $unvrpro_preload $unvrai_fcd_uImage $unvrai_preload"
 
-				sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir}"
-				sh "mv make.log ${m.artifact_dir}"
+				sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir_absolute_path}"
+				sh "mv make.log ${m.artifact_dir_absolute_path}"
 			}
 
 			dir_cleanup("${deleteWsPath}") {
