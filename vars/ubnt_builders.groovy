@@ -68,83 +68,13 @@ def get_job_options(String project)
 	return options.get(project, [:])
 
 }
-
-def preload_image_builder(String productSeries, Map job_options=[:], Map build_series=[:])
-{
-    deb build_jobs = []
- 	echo "build $productSeries"
- 	
-   	build_jobs.add([
-		node: job_options.node ?: "fwteam",
-		name: job_options.name,
-		artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}/arm64",
-		execute_order: 1,
-		upload: job_options.upload ?: false,
-		pre_checkout_steps: { m->
-			m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
-			m.upload_info.add([path: ["${m.name}", "arm64", "${m.build_dir}"], latest_path: ["${m.name}", "arm64", "latest"]])
-		},
-		build_steps: { m ->
-			sh "mkdir -p ${m.artifact_dir}"
-			def deleteWsPath
-			ws("${m.build_dir}") {
-				def co_map = checkout scm
-				deleteWsPath = env.WORKSPACE
-				bootload_path = "/home/dio/builder/amaz-alpinev2-boot/latest_tag/ubnt_unvr_all-1/boot.img"
-				unvr4_fcd_uImage = "/home/dio/builder/firmware.debbox/latest_tag/unifi-nvr4-fcd.alpine/uImage"
-				unvr4_preload = "spi-unifi-nvr4-${env.BUILD_TIMESTAMP}.bin"
-				unvrpro_fcd_uImage = "/home/dio/builder/firmware.debbox/latest_tag/unifi-nvr-pro-fcd.alpine/uImage"
-				unvrpro_preload = "spi-unifi-nvr-pro-${env.BUILD_TIMESTAMP}.bin"
-				unvrai_fcd_uImage = "/home/dio/builder/firmware.debbox/latest_tag/unifi-nvr-ai-fcd.alpine/uImage"
-				unvrai_preload = "spi-unifi-nvr-ai-${env.BUILD_TIMESTAMP}.bin"
-
-				bootload_path = sh_output("realpath $bootload_path")
-				unvr4_fcd_uImage = sh_output("realpath $unvr4_fcd_uImage")
-				unvrpro_fcd_uImage = sh_output("realpath $unvrpro_fcd_uImage")
-				unvrai_fcd_uImage = sh_output("realpath $unvrai_preload")
-
-				sh "echo boot_img: $bootload_path >> make.log"
-				sh "echo unvr4_fcd: $unvr4_fcd_uImage >> make.log"
-				sh "echo pro_fcd: $unvrpro_fcd_uImage >> make.log"
-				sh "echo ai_fcd: $unvrai_fcd_uImage >> make.log"
-				sh "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload $unvrpro_fcd_uImage $unvrpro_preload $unvrai_fcd_uImage $unvrai_preload"
-
-				sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir}"
-				sh "mv make.log ${m.artifact_dir}"
-			}
-
-			dir_cleanup("${deleteWsPath}") {
-				echo "cleanup ws ${deleteWsPath}"
-				deleteDir()
-			}
-			return true
-		},
-		archive_steps: { m ->
-			stage("Artifact ${m.name}") {
-				if (fileExists("${m.artifact_dir}/make.log")) {
-					if (m.containsKey('upload_info')) {
-						def upload_path = m.upload_info.path.join('/')
-						def latest_path = m.upload_info.latest_path.join('/')
-						println "upload: $upload_path ,artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
-						if(m.upload) {
-							ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
-						}
-					}
-					archiveArtifacts artifacts: "${m.artifact_dir}/**"
-				}
-			}
-		}
-   	])
-   	return build_jobs
-}
-
 /*
  * resultpath: the output dir that indicate where the binary generated
  * artifact_dir: this is the directory created in our build machine for storing the binary (relative path for artifact)
  * build_archs can be self defined
  */
- def debfactory_builder(String productSeries, Map job_options=[:], Map build_series=[:])
- {
+def debfactory_builder(String productSeries, Map job_options=[:], Map build_series=[:])
+{
  	def build_jobs = []
  	verify_required_params("debfactory_builder", job_options, [ 'build_archs', 'dist'])
  	echo "build $productSeries"
@@ -756,4 +686,73 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 	}
 	
 	return build_jobs
+}
+
+def preload_image_builder(String productSeries, Map job_options=[:], Map build_series=[:])
+{
+    def build_jobs = []
+ 	echo "build $productSeries"
+ 	
+   	build_jobs.add([
+		node: job_options.node ?: "fwteam",
+		name: job_options.name,
+		artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}/arm64",
+		execute_order: 1,
+		upload: job_options.upload ?: false,
+		pre_checkout_steps: { m->
+			m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
+			m.upload_info.add([path: ["${m.name}", "arm64", "${m.build_dir}"], latest_path: ["${m.name}", "arm64", "latest"]])
+		},
+		build_steps: { m ->
+			sh "mkdir -p ${m.artifact_dir}"
+			def deleteWsPath
+			ws("${m.build_dir}") {
+				def co_map = checkout scm
+				deleteWsPath = env.WORKSPACE
+				bootload_path = "/home/dio/builder/amaz-alpinev2-boot/latest_tag/ubnt_unvr_all-1/boot.img"
+				unvr4_fcd_uImage = "/home/dio/builder/firmware.debbox/latest_tag/unifi-nvr4-fcd.alpine/uImage"
+				unvr4_preload = "spi-unifi-nvr4-${env.BUILD_TIMESTAMP}.bin"
+				unvrpro_fcd_uImage = "/home/dio/builder/firmware.debbox/latest_tag/unifi-nvr-pro-fcd.alpine/uImage"
+				unvrpro_preload = "spi-unifi-nvr-pro-${env.BUILD_TIMESTAMP}.bin"
+				unvrai_fcd_uImage = "/home/dio/builder/firmware.debbox/latest_tag/unifi-nvr-ai-fcd.alpine/uImage"
+				unvrai_preload = "spi-unifi-nvr-ai-${env.BUILD_TIMESTAMP}.bin"
+
+				bootload_path = sh_output("realpath $bootload_path")
+				unvr4_fcd_uImage = sh_output("realpath $unvr4_fcd_uImage")
+				unvrpro_fcd_uImage = sh_output("realpath $unvrpro_fcd_uImage")
+				unvrai_fcd_uImage = sh_output("realpath $unvrai_preload")
+
+				sh "echo boot_img: $bootload_path >> make.log"
+				sh "echo unvr4_fcd: $unvr4_fcd_uImage >> make.log"
+				sh "echo pro_fcd: $unvrpro_fcd_uImage >> make.log"
+				sh "echo ai_fcd: $unvrai_fcd_uImage >> make.log"
+				sh "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload $unvrpro_fcd_uImage $unvrpro_preload $unvrai_fcd_uImage $unvrai_preload"
+
+				sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir}"
+				sh "mv make.log ${m.artifact_dir}"
+			}
+
+			dir_cleanup("${deleteWsPath}") {
+				echo "cleanup ws ${deleteWsPath}"
+				deleteDir()
+			}
+			return true
+		},
+		archive_steps: { m ->
+			stage("Artifact ${m.name}") {
+				if (fileExists("${m.artifact_dir}/make.log")) {
+					if (m.containsKey('upload_info')) {
+						def upload_path = m.upload_info.path.join('/')
+						def latest_path = m.upload_info.latest_path.join('/')
+						println "upload: $upload_path ,artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
+						if(m.upload) {
+							ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
+						}
+					}
+					archiveArtifacts artifacts: "${m.artifact_dir}/**"
+				}
+			}
+		}
+   	])
+   	return build_jobs
 }
