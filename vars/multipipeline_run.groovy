@@ -10,6 +10,8 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 		println "job_options: $job_options"
 
 		def build_jobs = ubnt_builders."${project}"(build_target, job_options, build_series)
+
+		println "job_options: $build_jobs"
 		
 		for (build_job in build_jobs) {
 			parallel_jobs[build_job.name] = ubnt_general_build(build_job)
