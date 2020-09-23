@@ -418,7 +418,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	build_product.each { name, target_map ->
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
-			name: target_map.product, 
+			name: target_map.product + "-QA", 
 			product: target_map.product,
 			execute_order: 2,
 	        build_steps: { m ->
