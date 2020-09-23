@@ -418,7 +418,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	build_product.each { name, target_map ->
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
-			name: target_map.product,
+			name: target_map.product + '-QA', 
+			product: target_map.product,
 			execute_order: 2,
 	        build_steps: { m ->
 	        	// only UNVR can have the release flag
@@ -437,7 +438,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	        qa_test_steps: { m->
 	            if (m.name.contains("fcd") || productSeries != "UNVR" || !m.is_release)
 	                return
-	            build_date = ubnt_nas.get_fw_build_date('firmware.debbox', m.name)
+	            build_date = ubnt_nas.get_fw_build_date('firmware.debbox',m.product)
 	            url_prefix = "http://tpe-judo.rad.ubnt.com/build/firmware.debbox/latest_tag"
 	            url = "$url_prefix/${m.name}/FW.LATEST.bin"
 	            echo "url: $url, build_date: $m.build_date" 
