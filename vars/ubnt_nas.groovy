@@ -67,6 +67,8 @@ def get_fw_build_date(project_name, product_name)
 	def matcher = (fw_name =~ build_date_pattern)
 	println matcher.size()
 	if (matcher.size() == 1) {
+		println matcher[0][1]
+		println matcher[0][2]
 		return matcher[0][1] +'.'+matcher[0][2]
 	}
 	return 
