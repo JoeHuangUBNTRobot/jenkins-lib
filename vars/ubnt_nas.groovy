@@ -65,7 +65,9 @@ def get_fw_build_date(project_name, product_name)
 	def fw_name = fw_path.tokenize("/").pop()
 	def build_date_pattern = ~/(\d+)\.(\d+)\.bin$/
 	def matcher = (fw_name =~ build_date_pattern)
+	println matcher.size()
 	if (matcher.size() == 1) {
 		return matcher[0][1] +'.'+matcher[0][2]
 	}
+	return 
 }
