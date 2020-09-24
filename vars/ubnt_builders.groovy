@@ -251,8 +251,17 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	verify_required_params("debbox_builder", build_series, [ productSeries ])
 	echo "build $productSeries"
 
+	def is_pr = env.getProperty("CHANGE_ID") != null
+	def is_tag = env.getProperty("TAG_NAME") != null
+	def is_atag = env.getProperty("TAG_NAME") != null
 	def build_product = build_series[productSeries]
 	def build_jobs = []
+
+	if (is_tag && TAG_NAME.startsWith("unifi-cloudkey") && productSeries != "UCK") {
+		return build_jobs
+	} else if (is_tag && TAG_NAME.startsWith("unifi-nvr") && productSeries != "UNVR") {
+		return build_jobs
+	}
 
 	build_product.each { name, target_map ->
 		build_jobs.add([
@@ -315,9 +324,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 							echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
 							git_args.revision = git_helper.sha()
 							git_args.rev_num = git_helper.rev()
-							def is_pr = env.getProperty("CHANGE_ID") != null
-							def is_tag = env.getProperty("TAG_NAME") != null
-							def is_atag = env.getProperty("TAG_NAME") != null
 							if (is_pr && is_atag) {
 								error "Unexpected environment, cannot be both PR and TAG"
 							}
