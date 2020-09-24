@@ -64,7 +64,7 @@ def get_job_options(String project)
 			upload: true
 		]
 	]
-	
+
 	return options.get(project, [:])
 
 }
@@ -144,7 +144,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						println buildPackages
 						println "build packages end "
 
-						sh 'ls -lahi'	
+						sh 'ls -lahi'
 						println "resultpath: $m.resultpath"
 						println "artifact_dir: $m.artifact_dir"
 
@@ -152,7 +152,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
  				}
  				stage("build $m.name") {
  					dir_cleanup("$m.build_dir") {
- 						try {			
+ 						try {
  							sh "./debfactory clean container && ./debfactory setup"
  							def build_list = buildPackages.join(" ")
  							m.build_failed = []
@@ -176,7 +176,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 							}
 							pkginfo.each { pkgname, pkgattr ->
 								println "name: ${pkgattr.name} hash: ${pkgattr.hash} arch: ${pkgattr.arch}"
-								sh "find ${m.resultpath} -maxdepth 1 -type f -name ${pkgattr.name}* | xargs -I {} cp {} ${m.absolute_artifact_dir}"								
+								sh "find ${m.resultpath} -maxdepth 1 -type f -name ${pkgattr.name}* | xargs -I {} cp {} ${m.absolute_artifact_dir}"
 							}
 							m.pkginfo = pkginfo.clone()
 						}
@@ -224,13 +224,13 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
 	def debbox_series = [
-		UCK: 
+		UCK:
 		[
 			// UCK: 'unifi-cloudkey.mtk',
 			UCKG2: [product: 'cloudkey-g2.apq8053', resultpath: 'target-cloudkey-g2.apq8053'],
 			UCKP: [product: 'cloudkey-plus.apq8053', resultpath: 'target-cloudkey-plus.apq8053']
 		],
-		UNVR: 
+		UNVR:
 		[
 			UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine'],
 			UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine'],
@@ -266,7 +266,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			upload: job_options.upload ?: false,
 			pre_checkout_steps: { m->
 				// do whatever you want before checkout step
-				sh 'export'								
+				sh 'export'
 				return true
 			},
 			build_steps: { m->
@@ -284,29 +284,29 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					dir_cleanup("${m.build_dir}") {
 						def dockerImage
 						if (productSeries == "NX") {
-							dockerImage = docker.image('registry.ubnt.com.tw:6666/ubuntu:nx')	
+							dockerImage = docker.image('registry.ubnt.com.tw:6666/ubuntu:nx')
 						} else {
 							dockerImage = docker.image('debbox-arm64:v3')
 						}
 
 						dockerImage.inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.docker_artifact_path:/root/artifact_dir:rw") {
 							/*
-							 * tag build var: 
+							 * tag build var:
 							 * TAG_NAME: unifi-cloudkey/v1.1.9
 							 *
 							 * pr build var:
 							 * CHANGE_BRANCH: feature/unifi-core-integration
 							 * CHANGE_ID: 32 (pull request ID)
-							 * git_args: 
-							 	   user: git
-							       site: git.uidev.tools, 
-							       repository: firmware.debbox
-							       revision: git changeset
-							       local_branch: feature/unifi-core-integration or unifi-cloudkey/v1.1.9
-							       is_pr: true or false
-							       is_tag: true or false
+							 * git_args:
+							 *     user: git
+							 *     site: git.uidev.tools,
+							 *     repository: firmware.debbox
+							 *     revision: git changeset
+							 *     local_branch: feature/unifi-core-integration or unifi-cloudkey/v1.1.9
+							 *     is_pr: true or false
+							 *     is_tag: true or false
 							 *     tag: unifi-cloudkey/v1.1.9 (TAG_NAME)
-							 *     branch_name (feature/unifi-core-integration) 
+							 *     branch_name (feature/unifi-core-integration)
 							 */
 							def co_map = checkout scm
 							def url = co_map.GIT_URL
@@ -363,9 +363,9 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						 			sh "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
 						 		}
 						 		else {
-						 			sh "AWS_PROFILE=default make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"	
+						 			sh "AWS_PROFILE=default make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
 						 		}
-						 		
+
 						 	}
 
 						 	sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
@@ -379,70 +379,70 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						 	m.additional_store.each { additional_file ->
 						 		sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
 						 	}
-		                    // In order to cleanup the dl and build directory 
-	                        sh "chmod -R 777 ."
-        	            }
-            	        deleteDir()
-                	}
-                }
-                return true
-            },
-            archive_steps: { m->
-            	stage("Upload to server") {
-            		if (m.upload && m.containsKey('upload_info')) {
-            			def upload_path = m.upload_info.path.join('/')
-            			def latest_path = m.upload_info.latest_path.join('/')
-            			ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path)
-            		}
-            		if (productSeries == "UNVR") {
-	            		sh "rm ${m.docker_artifact_path}/uImage || true"
-	            		sh "rm ${m.docker_artifact_path}/vmlinux || true"
-	            		sh "rm ${m.docker_artifact_path}/vmlinuz-4.1.37-ubnt || true"
-            		}
-                    if (productSeries == "NX") {
-                        sh "rm ${m.docker_artifact_path}/*.bin || true"
-                    }
-            		/*
-            		m.additional_store.each { additional_file->
-            			filename = additional_file.tokenize('/').pop()
-            			sh "rm ${m.docker_artifact_path}/$filename || true"
-            		}
-            		*/
-            	}
-            	stage("Artifact ${m.name}") {
-            		archiveArtifacts artifacts: "${m.artifact_dir}/**"
-            	}
-            }
-        ])
+							// In order to cleanup the dl and build directory
+							sh "chmod -R 777 ."
+						}
+						deleteDir()
+					}
+				}
+				return true
+			},
+			archive_steps: { m->
+				stage("Upload to server") {
+					if (m.upload && m.containsKey('upload_info')) {
+						def upload_path = m.upload_info.path.join('/')
+						def latest_path = m.upload_info.latest_path.join('/')
+						ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path)
+					}
+					if (productSeries == "UNVR") {
+						sh "rm ${m.docker_artifact_path}/uImage || true"
+						sh "rm ${m.docker_artifact_path}/vmlinux || true"
+						sh "rm ${m.docker_artifact_path}/vmlinuz-4.1.37-ubnt || true"
+					}
+					if (productSeries == "NX") {
+						sh "rm ${m.docker_artifact_path}/*.bin || true"
+					}
+					/*
+					m.additional_store.each { additional_file->
+						filename = additional_file.tokenize('/').pop()
+						sh "rm ${m.docker_artifact_path}/$filename || true"
+					}
+					*/
+				}
+				stage("Artifact ${m.name}") {
+					archiveArtifacts artifacts: "${m.artifact_dir}/**"
+				}
+			}
+		])
 	}
 	build_product.each { name, target_map ->
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
-			name: target_map.product + "-QA", 
+			name: target_map.product + "-QA",
 			product: target_map.product,
 			execute_order: 2,
-	        build_steps: { m ->
-	        	// only UNVR can have the release flag
-	        	m.is_release = false
-	        	if (env.getProperty("TAG_NAME") != null) {
-	        		if (productSeries == "UNVR") {
-	        			if(TAG_NAME.contains("release")) {
-	        				m.is_release = true
-	        			}
-	        		} else {
-	        			m.is_release = true
-	        		}
-	        	}
-	        	return true
-	        },
-	        qa_test_steps: { m->
-	            if (m.name.contains("fcd") || productSeries != "UNVR" || !m.is_release)
-	                return
-	            build_date = ubnt_nas.get_fw_build_date('firmware.debbox', m.product)
-	            url_prefix = "http://tpe-judo.rad.ubnt.com/build/firmware.debbox/latest_tag"
-	            url = "$url_prefix/${m.name}/FW.LATEST.bin"
-	            echo "url: $url, build_date: $build_date" 
-			    sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com:8080/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$build_date --user scott:117c7831d9ba3fabf15b0a2b05e71f5cdb"
+			build_steps: { m ->
+				// only UNVR can have the release flag
+				m.is_release = false
+				if (env.getProperty("TAG_NAME") != null) {
+					if (productSeries == "UNVR") {
+						if(TAG_NAME.contains("release")) {
+							m.is_release = true
+						}
+					} else {
+						m.is_release = true
+					}
+				}
+				return true
+			},
+			qa_test_steps: { m->
+				if (m.name.contains("fcd") || productSeries != "UNVR" || !m.is_release)
+					return
+				build_date = ubnt_nas.get_fw_build_date('firmware.debbox', m.product)
+				url_prefix = "http://tpe-judo.rad.ubnt.com/build/firmware.debbox/latest_tag"
+				url = "$url_prefix/${m.name}/FW.LATEST.bin"
+				echo "url: $url, build_date: $build_date"
+				sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com:8080/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$build_date --user scott:117c7831d9ba3fabf15b0a2b05e71f5cdb"
 			}
 		])
 	}
@@ -451,26 +451,26 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 
 def disk_smart_mon_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
-	echo "build $productSeries"  
-	return debpkg(job_options, ["stretch/arm64"]) 
+	echo "build $productSeries"
+	return debpkg(job_options, ["stretch/arm64"])
 }
 
 def disk_quota_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
-	echo "build $productSeries" 
-	return debpkg(job_options, ["stretch/arm64"]) 
+	echo "build $productSeries"
+	return debpkg(job_options, ["stretch/arm64"])
 }
 
 def analytic_report_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
 	echo "build $productSeries"
-	return debpkg(job_options) 
+	return debpkg(job_options)
 }
 
 def debbox_base_files_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
 	echo "build $productSeries"
-	return debpkg(job_options)  
+	return debpkg(job_options)
 }
 
 def cloudkey_apq8053_initramfs_builder(String productSeries, Map job_options=[:], Map build_series=[:])
@@ -482,11 +482,11 @@ def cloudkey_apq8053_initramfs_builder(String productSeries, Map job_options=[:]
 def ubnt_archive_keyring_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
 	echo "build $productSeries"
-	return debpkg(job_options) 
+	return debpkg(job_options)
 }
 
 def ubnt_zram_swap_builder(String productSeries, Map job_options=[:], Map build_series=[:])
-{ 
+{
 	echo "build $productSeries"
 	return debpkg(job_options)
 }
@@ -494,7 +494,7 @@ def ubnt_zram_swap_builder(String productSeries, Map job_options=[:], Map build_
 def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
 	echo "build $productSeries"
-	
+
 	// stretch/amd64 could not build successfully
 	return debpkg(job_options, ["stretch/arm64"])
 }
@@ -503,7 +503,7 @@ def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_seri
  * job_options must contains the following params (key-value)
  * name: project name
  * dist: path of output dir  (default is "dist")
- * 
+ *
  */
 def debpkg(Map job_options, configs=["all"])
 {
@@ -539,32 +539,32 @@ def debpkg(Map job_options, configs=["all"])
 				def deleteWsPath
 				ws("${m.build_dir}"){
 					deleteWsPath = env.WORKSPACE
-	    			def dockerImage = docker.image('debbox-arm64:v3');
-	    			def dockerArgs = "-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v ${m.absolute_artifact_dir}:/root/artifact_dir:rw"
+					def dockerImage = docker.image('debbox-arm64:v3');
+					def dockerArgs = "-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v ${m.absolute_artifact_dir}:/root/artifact_dir:rw"
 
-	    			dockerImage.inside(dockerArgs) {
-	    				sh "pwd"
-	        			def co_map = checkout scm
-	        			sh "ls -alhi"
-	    				def url = co_map.GIT_URL
-	    				def git_args = git_helper.split_url(url)
-	    				def repository = git_args.repository
-	    				echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
-	    				git_args.revision = git_helper.sha()
-	    				git_args.rev_num = git_helper.rev()
+					dockerImage.inside(dockerArgs) {
+						sh "pwd"
+						def co_map = checkout scm
+						sh "ls -alhi"
+						def url = co_map.GIT_URL
+						def git_args = git_helper.split_url(url)
+						def repository = git_args.repository
+						echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
+						git_args.revision = git_helper.sha()
+						git_args.rev_num = git_helper.rev()
 
-	    				def is_pr = env.getProperty("CHANGE_ID") != null
-	    				def is_atag = env.getProperty("TAG_NAME") != null
-	    				if (is_pr && is_atag) {
-	    					error "Unexpected environment, cannot be both PR and TAG"
-	    				}
+						def is_pr = env.getProperty("CHANGE_ID") != null
+						def is_atag = env.getProperty("TAG_NAME") != null
+						if (is_pr && is_atag) {
+							error "Unexpected environment, cannot be both PR and TAG"
+						}
 
-	    				def ref
-	    				if (is_atag) {
-	    					ref = TAG_NAME
-	    					git_helper.verify_is_atag(ref)
-	    					git_args.local_branch = ref
-	    				} else {
+						def ref
+						if (is_atag) {
+							ref = TAG_NAME
+							git_helper.verify_is_atag(ref)
+							git_args.local_branch = ref
+						} else {
 							ref = git_helper.current_branch()
 							if (!ref || ref == 'HEAD') {
 								ref = "origin/${BRANCH_NAME}"
@@ -584,14 +584,14 @@ def debpkg(Map job_options, configs=["all"])
 						sh "cp -rT ${m.dist} /root/artifact_dir || true"
 						sh "mv make.log /root/artifact_dir"
 					}
-	    		}
+				}
 
-	    		dir_cleanup("${deleteWsPath}") {
-	    			echo "cleanup ws ${deleteWsPath}"
-	    			deleteDir()
-	    		}
-	    		return true
-	    	},
+				dir_cleanup("${deleteWsPath}") {
+					echo "cleanup ws ${deleteWsPath}"
+					deleteDir()
+				}
+				return true
+			},
 			archive_steps: { m ->
 				stage("Artifact ${m.name}") {
 					if (fileExists("$m.artifact_dir/${artifact_prefix}/make.log")) {
@@ -604,9 +604,9 @@ def debpkg(Map job_options, configs=["all"])
 						}
 					}
 				}
-	    	}
-    	])
-    }
+			}
+		])
+	}
 	return build_jobs
 }
 
@@ -616,7 +616,7 @@ def debpkg(Map job_options, configs=["all"])
  * name: project name
  * dist: path of output dir  (default is "dist")
  * amaz_alpinev2_boot_config: a map include model:hw_ver pair
- * build: 1. build_series all 2. build projectSeries 
+ * build: 1. build_series all 2. build projectSeries
  */
 
 def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map build_config=[:])
@@ -662,38 +662,38 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 				def deleteWsPath
 				ws("${m.build_dir}"){
 					deleteWsPath = env.WORKSPACE
-	    			def dockerImage = docker.image('debbox-arm64:v3');
-	    			def dockerArgs = "-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v ${m.absolute_artifact_dir}:/root/artifact_dir:rw"
+					def dockerImage = docker.image('debbox-arm64:v3');
+					def dockerArgs = "-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v ${m.absolute_artifact_dir}:/root/artifact_dir:rw"
 
-	    			dockerImage.inside(dockerArgs) {
-	    				sh "pwd"
-	        			def co_map = checkout scm
-	        			sh "ls -alhi"
-	    				def url = co_map.GIT_URL
-	    				def git_args = git_helper.split_url(url)
-	    				def repository = git_args.repository
-	    				echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
-	    				git_args.revision = git_helper.sha()
-	    				git_args.rev_num = git_helper.rev()
+					dockerImage.inside(dockerArgs) {
+						sh "pwd"
+						def co_map = checkout scm
+						sh "ls -alhi"
+						def url = co_map.GIT_URL
+						def git_args = git_helper.split_url(url)
+						def repository = git_args.repository
+						echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
+						git_args.revision = git_helper.sha()
+						git_args.rev_num = git_helper.rev()
 
-	    				def is_pr = env.getProperty("CHANGE_ID") != null
-	    				def is_atag = env.getProperty("TAG_NAME") != null
-	    				def is_tag = env.getProperty("TAG_NAME") != null
-	    				if (is_pr && is_atag) {
-	    					error "Unexpected environment, cannot be both PR and TAG"
-	    				}
-	    				def ref
-	    				if (is_atag) {
-	    					ref = TAG_NAME
-	    					try {
+						def is_pr = env.getProperty("CHANGE_ID") != null
+						def is_atag = env.getProperty("TAG_NAME") != null
+						def is_tag = env.getProperty("TAG_NAME") != null
+						if (is_pr && is_atag) {
+							error "Unexpected environment, cannot be both PR and TAG"
+						}
+						def ref
+						if (is_atag) {
+							ref = TAG_NAME
+							try {
 								git_helper.verify_is_atag(ref)
 							} catch (all) {
 								println "catch error: $all"
 								is_atag = false
 							}
-							println "tag build: istag: $is_tag, is_atag:$is_atag"    					
-	    					git_args.local_branch = ref
-	    				} else {
+							println "tag build: istag: $is_tag, is_atag:$is_atag"
+							git_args.local_branch = ref
+						} else {
 							ref = git_helper.current_branch()
 							if (!ref || ref == 'HEAD') {
 								ref = "origin/${BRANCH_NAME}"
@@ -715,14 +715,14 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 						sh "mv make.log /root/artifact_dir"
 						sh "rm -rf /root/artifact_dir/input || true"
 					}
-	    		}
+				}
 
-	    		dir_cleanup("${deleteWsPath}") {
-	    			echo "cleanup ws ${deleteWsPath}"
-	    			deleteDir()
-	    		}
-	    		return true
-	    	},
+				dir_cleanup("${deleteWsPath}") {
+					echo "cleanup ws ${deleteWsPath}"
+					deleteDir()
+				}
+				return true
+			},
 			archive_steps: { m ->
 				stage("Artifact ${m.name}") {
 					if (fileExists("$m.artifact_dir/${m.artifact_prefix}/make.log")) {
@@ -737,18 +737,18 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 						}
 					}
 				}
-	    	}
+			}
 		])
 	}
-	
+
 	return build_jobs
 }
 
 def preload_image_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
-    def build_jobs = []
+	def build_jobs = []
  	echo "build $productSeries"
- 	
+
    	build_jobs.add([
 		node: job_options.node ?: "fwteam",
 		name: job_options.name,
@@ -757,8 +757,8 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 		upload: job_options.upload ?: false,
 		pre_checkout_steps: { m->
 			m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
-			m.upload_info = [ 
-				path: ["${m.name}", "arm64", "${m.build_dir}"], 
+			m.upload_info = [
+				path: ["${m.name}", "arm64", "${m.build_dir}"],
 				latest_path: ["${m.name}", "arm64", "latest"]
 			]
 		},
