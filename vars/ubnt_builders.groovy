@@ -398,20 +398,20 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					if (m.upload && m.containsKey('upload_info')) {
 						def upload_path = m.upload_info.path.join('/')
 						def latest_path = m.upload_info.latest_path.join('/')
-						ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path)
+						ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path, true)
 					}
 					if (productSeries == "UNVR") {
-						sh "rm ${m.docker_artifact_path}/uImage || true"
-						sh "rm ${m.docker_artifact_path}/vmlinux || true"
-						sh "rm ${m.docker_artifact_path}/vmlinuz-4.1.37-ubnt || true"
+						sh "rm -f ${m.docker_artifact_path}/uImage"
+						sh "rm -f ${m.docker_artifact_path}/vmlinux"
+						sh "rm -f ${m.docker_artifact_path}/vmlinuz-4.1.37-ubnt"
 					}
 					if (productSeries == "NX") {
-						sh "rm ${m.docker_artifact_path}/*.bin || true"
+						sh "rm -f ${m.docker_artifact_path}/*.bin"
 					}
 					/*
 					m.additional_store.each { additional_file->
 						filename = additional_file.tokenize('/').pop()
-						sh "rm ${m.docker_artifact_path}/$filename || true"
+						sh "rm -f ${m.docker_artifact_path}/$filename"
 					}
 					*/
 				}

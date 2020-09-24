@@ -1,5 +1,5 @@
 def generate_buildinfo(Map git_args) {
-	println git_args	
+	println git_args
 	verify_required_params('generate_buildinfo', git_args, ['repository', 'is_pr', 'is_tag', 'ref', 'rev_num'])
 	def output = [:]
 	println git_args
@@ -43,7 +43,7 @@ def generate_buildinfo(Map git_args) {
 }
 
 
-def upload(src_path, dst_path, latest_path)
+def upload(src_path, dst_path, latest_path, link_subdir = false)
 {
 	def nasdir = "$HOME/builder"
 	def notmounted = sh_output.status_code("mountpoint -q $nasdir")
@@ -53,7 +53,11 @@ def upload(src_path, dst_path, latest_path)
 		println "upload from $src_path to $nas_path"
 		sh "mkdir -p $nas_path"
 		sh "cp -rp $src_path $nas_path"
-		sh "ln -sfT $nas_path $latest_path"
+		if (link_subdir) {
+			sh "for subdir in $nas_path/*; do ln -srf -t $latest_path \$subdir; done"
+		} else {
+			sh "ln -sfT $nas_path $latest_path"
+		}
 	}
 }
 
@@ -68,5 +72,5 @@ def get_fw_build_date(project_name, product_name)
 	if (matcher.size() == 1) {
 		return matcher[0][1] +'.'+matcher[0][2]
 	}
-	return 
+	return
 }
