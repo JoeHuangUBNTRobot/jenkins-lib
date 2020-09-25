@@ -110,9 +110,15 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
  						def url = co_map.GIT_URL
 						def git_args = git_helper.split_url(url)
 						def repository = git_args.repository
+
 						echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
 						git_args.revision = git_helper.sha()
 						git_args.rev_num = git_helper.rev()
+
+						def is_pr = env.getProperty("CHANGE_ID") != null
+						def is_tag = env.getProperty("TAG_NAME") != null
+						def is_atag = env.getProperty("TAG_NAME") != null
+
 						if (is_pr && is_atag) {
 							error "Unexpected environment, cannot be both PR and TAG"
 						}
