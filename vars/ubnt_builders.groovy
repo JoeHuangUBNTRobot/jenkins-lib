@@ -10,7 +10,6 @@ def get_job_options(String project)
 			job_artifact_dir: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
 			node: 'fwteam',
 			build_archs: ['arm64'],
-			dist: 'stretch',
 			upload: true
 		],
 		analytic_report_builder:[
