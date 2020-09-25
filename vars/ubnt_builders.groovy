@@ -75,7 +75,7 @@ def get_job_options(String project)
 def debfactory_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
  	def build_jobs = []
- 	verify_required_params("debfactory_builder", job_options, [ 'build_archs', 'dist'])
+ 	verify_required_params("debfactory_builder", job_options, [ 'build_archs'])
  	echo "build $productSeries"
  	job_options.build_archs.each { arch->
  		build_jobs.add([
