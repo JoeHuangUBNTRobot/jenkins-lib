@@ -131,28 +131,28 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						 	ref = git_helper.current_branch()
 						 	if (!ref || ref == 'HEAD') {
 						 		ref = "origin/${BRANCH_NAME}"
-								} else {
-									git_args.local_branch = ref
-								}
+							} else {
+								git_args.local_branch = ref
 							}
-							// decide release build logic
-							def is_release = false
-							if (is_tag) {
-								if(is_atag) {
-									is_release = true
-								} else {
-									is_release = TAG_NAME.contains("release")
-								}
-							}
-							m.is_release = is_release
-							git_args.is_pr = is_pr
-							git_args.is_tag = is_tag
-							git_args.is_atag = is_atag
-							git_args.ref = ref
-							m['git_args'] = git_args.clone()
-							m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
-							print m.upload_info
 						}
+						// decide release build logic
+						def is_release = false
+						if (is_tag) {
+							if(is_atag) {
+								is_release = true
+							} else {
+								is_release = TAG_NAME.contains("release")
+							}
+						}
+						m.is_release = is_release
+						git_args.is_pr = is_pr
+						git_args.is_tag = is_tag
+						git_args.is_atag = is_atag
+						git_args.ref = ref
+						m['git_args'] = git_args.clone()
+						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
+						print m.upload_info
+
  						def last_successful_commit = utility.getLastSuccessfulCommit()
  						if(!last_successful_commit) {
  							last_successful_commit = git_helper.first_commit()
