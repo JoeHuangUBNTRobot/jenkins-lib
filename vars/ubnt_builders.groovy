@@ -77,15 +77,21 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
  	def build_jobs = []
  	verify_required_params("debfactory_builder", job_options, [ 'build_archs'])
  	echo "build $productSeries"
+ 	def build_dist = 'stretch'
+ 	if (job_options.containsKey('dist')) {
+ 		build_dist = job_options.dist
+ 	}
+
  	job_options.build_archs.each { arch->
+
  		build_jobs.add([
  			node: job_options.node ?: 'fwteam',
  			name: 'debfactory',
- 			resultpath: "build/$job_options.dist-$arch",
+ 			dist: "$build_dist",
+ 			resultpath: "build/${build_dist}-${arch}",
  			execute_order: 1,
  			artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
  			arch: arch,
- 			dist: job_options.dist ?: 'stretch',
  			build_status:false,
  			upload: job_options.upload ?: false,
  			build_steps:{ m->
