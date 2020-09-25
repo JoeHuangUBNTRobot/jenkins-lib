@@ -206,8 +206,8 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						if(m.upload) {
 							m.pkginfo.each { pkgname, pkgattr->
 								def src_path = "${m.absolute_artifact_dir}/${pkgattr.name}*"
-								def dst_path = "${pkgattr.name}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
-								def latest_path = "${pkgattr.name}/${pkgattr.arch}/latest"
+								def dst_path = "${pkgattr.name}/${m.dist}-${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
+								def latest_path = "${pkgattr.name}/${m.dist}-${pkgattr.arch}/latest"
 								sh "ls -alhi ${src_path}"
 								ubnt_nas.upload(src_path, dst_path, latest_path)
 							}
