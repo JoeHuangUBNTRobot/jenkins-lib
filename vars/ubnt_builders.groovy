@@ -106,7 +106,53 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 
  					dir("$m.build_dir") {
  						def packagesName = []
- 						checkout scm
+ 						def co_map = checkout scm
+ 						def url = co_map.GIT_URL
+						def git_args = git_helper.split_url(url)
+						def repository = git_args.repository
+						echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
+						git_args.revision = git_helper.sha()
+						git_args.rev_num = git_helper.rev()
+						if (is_pr && is_atag) {
+							error "Unexpected environment, cannot be both PR and TAG"
+						}
+						def ref
+						if (is_tag) {
+							ref = TAG_NAME
+							try {
+								git_helper.verify_is_atag(ref)
+							} catch (all) {
+								println "catch error: $all"
+								is_atag = false
+							}
+							println "tag build: istag: $is_tag, is_atag:$is_atag"
+							git_args.local_branch = ref
+						} else {
+						 	ref = git_helper.current_branch()
+						 	if (!ref || ref == 'HEAD') {
+						 		ref = "origin/${BRANCH_NAME}"
+								} else {
+									git_args.local_branch = ref
+								}
+							}
+							// decide release build logic
+							def is_release = false
+							if (is_tag) {
+								if(is_atag) {
+									is_release = true
+								} else {
+									is_release = TAG_NAME.contains("release")
+								}
+							}
+							m.is_release = is_release
+							git_args.is_pr = is_pr
+							git_args.is_tag = is_tag
+							git_args.is_atag = is_atag
+							git_args.ref = ref
+							m['git_args'] = git_args.clone()
+							m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
+							print m.upload_info
+						}
  						def last_successful_commit = utility.getLastSuccessfulCommit()
  						if(!last_successful_commit) {
  							last_successful_commit = git_helper.first_commit()
@@ -208,13 +254,14 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						archiveArtifacts artifacts: "${m.artifact_dir}/*"
 					}
 					stage("Upload to server") {
-						if(m.upload) {
+						if(m.upload && m.containsKey('upload_info')) {
 							m.pkginfo.each { pkgname, pkgattr->
+								def upload_prefix = m.upload_info.path.join('/')
+								def latest_prefix = m.upload_info.latest_path.join('/')
 								def src_path = "${m.absolute_artifact_dir}/${pkgattr.name}*"
-								def dst_path = "${pkgattr.name}/${m.dist}-${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
-								def latest_path = "${pkgattr.name}/${m.dist}-${pkgattr.arch}/latest"
-								sh "ls -alhi ${src_path}"
-								ubnt_nas.upload(src_path, dst_path, latest_path)
+								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
+								def latest_path = "${latest_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}"
+								ubnt_nas.upload(src_path, dst_path, latest_path, true)
 							}
 						}
 					}
