@@ -240,7 +240,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 		],
 		NX:
 		[
-			UNVRNX: [product: 'unifi-nvr-nx.nvidia', resultpath: 'target-unifi-nvr-nx.nvidia', additional_store: ["image/unvr-nx-image/uImage", "image/unvr-nx-image/rootfs.img", "image/unvr-nx-image/initrd.img-4.9.140-ubnt"]]
+			UNVRNX: [product: 'unifi-nx.nvidia', resultpath: 'target-unifi-nvr-nx.nvidia', additional_store: ["image/unvr-nx-image/uImage", "image/unvr-nx-image/rootfs.img", "image/unvr-nx-image/initrd.img-4.9.140-ubnt"]]
 		]
 	]
 
@@ -406,6 +406,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					}
 					if (productSeries == "NX") {
 						sh "rm -f ${m.docker_artifact_path}/*.bin"
+						sh "rm -f ${m.docker_artifact_path}/*.img"
 					}
 					/*
 					m.additional_store.each { additional_file->
