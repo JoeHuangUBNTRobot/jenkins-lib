@@ -163,6 +163,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
  						if(!last_successful_commit) {
  							last_successful_commit = git_helper.first_commit()
  						}
+ 						last_successful_commit = git_helper.first_commit()
  						print last_successful_commit
  						def fileChanges = git_helper.get_file_changes(last_successful_commit)
  						println "fileChanges: $fileChanges"
