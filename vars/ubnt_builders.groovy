@@ -304,7 +304,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 		],
 		NX:
 		[
-			UNVRNX: [product: 'unifi-nx.nvidia', resultpath: 'target-unifi-nvr-nx.nvidia', additional_store: ["image/unvr-nx-image/uImage", "image/unvr-nx-image/rootfs.img", "image/unvr-nx-image/initrd.img-4.9.140-ubnt"]]
+			UNX: [product: 'unifi-nx.nvidia', resultpath: 'target-unifi-nx.nvidia', additional_store: ["image/unx-image/uImage", "image/unx-image/rootfs.img", "image/unx-image/initrd.img-4.9.140-ubnt"]]
 		]
 	]
 
