@@ -261,14 +261,19 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 					}
 					stage("Upload to server") {
 						if(m.upload && m.containsKey('upload_info')) {
+							def tmpdir = 'tmppkg'
+							sh "mkdir -p $tmpdir"
 							m.pkginfo.each { pkgname, pkgattr->
 								def upload_prefix = m.upload_info.path.join('/')
 								def latest_prefix = m.upload_info.latest_path.join('/')
-								def src_path = "${m.absolute_artifact_dir}/${pkgattr.name}*"
+								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name \\'${pkgattr.name}[-_]*\\' | xargs -I {} cp {} $tmpdir"
+								def src_path = "$tmpdir/${pkgattr.name}*"
 								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
 								def latest_path = "${latest_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}"
 								ubnt_nas.upload(src_path, dst_path, latest_path, true)
+								sh "rm $tmpdir/*"
 							}
+							sh "rm -rf $tmpdir"
 						}
 					}
 				}
