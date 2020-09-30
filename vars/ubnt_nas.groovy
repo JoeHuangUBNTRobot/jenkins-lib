@@ -15,8 +15,10 @@ def generate_buildinfo(Map git_args) {
 			email_cmd = "git tag -l --format='%(taggeremail)' ${ref}"
 			date_cmd = "git tag -l --format='%(taggerdate:format:%F_%H%M%S)' ${ref}"
 		}
-		def ref_tag = ref.tokenize('/').pop()
-		ref_path = ref_path + 'tags'+ ref_tag
+		def tag_array = ref.tokenize('/')
+		tag_val = tag_array.pop()
+		tag_prod = tag_array.pop()
+		ref_path = ref_path + 'tags'+ tag_prod + tag_val
 		latest_path = latest_path + 'latest_tag'
 	} else {
 		if (git_args.is_pr) {
