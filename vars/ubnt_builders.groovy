@@ -270,7 +270,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								sh "ls -alhi ${m.absolute_artifact_dir}/"
 								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name ${pkgattr.name}_* | xargs -I {} cp {} ${tmpdir}"
 								sh "ls -alhi $tmpdir/"
-								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name '${pkgattr.name}*'"
+								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name '${pkgattr.name}[-_]*'"
 								sh "ls -alhi $tmpdir/"
 								def src_path = "$tmpdir/${pkgattr.name}*"
 								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
