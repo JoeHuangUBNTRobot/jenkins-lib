@@ -268,9 +268,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								def upload_prefix = m.upload_info.path.join('/')
 								def latest_prefix = m.upload_info.latest_path.join('/')
 								sh "ls -alhi ${m.absolute_artifact_dir}/"
-								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name \\'${pkgattr.name}[-_]*\\' | xargs -I {} cp {} ${tmpdir}"
+								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name ${pkgattr.name}_* | xargs -I {} cp {} ${tmpdir}"
 								sh "ls -alhi $tmpdir/"
-								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name ${pkgattr.name}[-_]"
+								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name '${pkgattr.name}*'"
 								sh "ls -alhi $tmpdir/"
 								def src_path = "$tmpdir/${pkgattr.name}*"
 								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
