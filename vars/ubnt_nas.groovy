@@ -61,8 +61,8 @@ def upload(src_path, dst_path, latest_path, link_subdir = false)
 		println "upload from $src_path to $nas_path"
 		sh "mkdir -p $nas_path"
 		sh "cp -rp $src_path $nas_path"
+		sh "mkdir -p $latest_path"
 		if (link_subdir) {
-			sh "mkdir -p $latest_path"
 			sh "for subdir in $nas_path/*; do ln -srf -t $latest_path \$subdir; done"
 		} else {
 			sh "ln -sfT $nas_path $latest_path"
