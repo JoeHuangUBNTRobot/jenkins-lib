@@ -308,6 +308,17 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 		NX:
 		[
 			UNX: [product: 'unifi-nx.nvidia', resultpath: 'target-unifi-nx.nvidia', additional_store: ["image/unx-image/Image", "image/unx-image/rootfs.img", "image/unx-image/initrd"]]
+		],
+		UNIFICORE:
+		[
+			UCKG2: [product: 'cloudkey-g2.apq8053', resultpath: 'target-cloudkey-g2.apq8053'],
+			UCKP: [product: 'cloudkey-plus.apq8053', resultpath: 'target-cloudkey-plus.apq8053'],
+			UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine'],
+			UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine'],
+			UNVRAI: [product: 'unifi-nvr-ai-protect.alpine', resultpath:'target-unifi-nvr-ai.alpine'],
+			UNVRFCD: [product: 'unifi-nvr4-fcd.alpine', resultpath:'target-unifi-nvr4.alpine'],
+			UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine'],
+			UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine']
 		]
 	]
 
@@ -330,6 +341,11 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	}
 
 	build_product.each { name, target_map ->
+		if (is_tag && TAG_NAME.startsWith("unifi-cloudkey") && !name.contains("UCK") && productSeries == "UNIFICORE") {
+			return　　
+		} else if (is_tag && TAG_NAME.startsWith("unifi-nvr") && !name.contains("UNVR") && productSeries == "UNIFICORE") {
+			return
+		}
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
 			name: target_map.product,
@@ -494,6 +510,11 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 		])
 	}
 	build_product.each { name, target_map ->
+		if (is_tag && TAG_NAME.startsWith("unifi-cloudkey") && !name.contains("UCK") && productSeries == "UNIFICORE") {
+			return　　
+		} else if (is_tag && TAG_NAME.startsWith("unifi-nvr") && !name.contains("UNVR") && productSeries == "UNIFICORE") {
+			return
+		}
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
 			name: target_map.product + "-QA",
@@ -501,20 +522,29 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			execute_order: 2,
 			build_steps: { m ->
 				// only UNVR can have the release flag
+				if (is_tag) {
+					try {
+						git_helper.verify_is_atag(TAG_NAME)
+					} catch (all) {
+						println "catch error: $all"
+						is_atag = false
+					}
+					println "tag build: istag: $is_tag, is_atag:$is_atag"
+				}
 				m.is_release = false
-				if (env.getProperty("TAG_NAME") != null) {
-					if (productSeries == "UNVR") {
-						if(TAG_NAME.contains("release")) {
-							m.is_release = true
-						}
+				def is_release = false
+				if (is_tag) {
+					if(is_atag) {
+						is_release = true
 					} else {
-						m.is_release = true
+						is_release = TAG_NAME.contains("release")
 					}
 				}
+				m.is_release = is_release
 				return true
 			},
 			qa_test_steps: { m->
-				if (m.name.contains("fcd") || productSeries != "UNVR" || !m.is_release)
+				if (m.name.contains("fcd") || !name.contains("UNVR") || !m.is_release)
 					return
 				build_date = ubnt_nas.get_fw_build_date('firmware.debbox', m.product)
 				url_prefix = "http://tpe-judo.rad.ubnt.com/build/firmware.debbox/latest_tag"
