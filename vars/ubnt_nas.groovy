@@ -61,6 +61,9 @@ def upload(src_path, dst_path, latest_path, link_subdir = false)
 		println "upload from $src_path to $nas_path"
 		sh "mkdir -p $nas_path"
 		sh "cp -rp $src_path $nas_path"
+		def src_basename = src_path.tokenize("/").pop()
+		def output_path = sh_output("realpath ${nas_path}/${src_basename}/* || true")
+		println "output_path = ${output_path}"
 		if (link_subdir) {
 			sh "mkdir -p $latest_path"
 			sh "for subdir in $nas_path/*; do ln -srf -t $latest_path \$subdir; done"
