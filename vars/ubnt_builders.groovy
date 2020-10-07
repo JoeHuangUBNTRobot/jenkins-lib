@@ -430,6 +430,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						 	m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						 	print m.upload_info
 						 	withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
+						 		// if bootloader url is changed please also modify the daily build script together
 						 		def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
 						 		if (productSeries == "UNVR") {
 						 			sh "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
@@ -483,7 +484,11 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					*/
 				}
 				stage("Artifact ${m.name}") {
-					archiveArtifacts artifacts: "${m.artifact_dir}/**"
+					try {
+						archiveArtifacts artifacts: "${m.artifact_dir}/**" excludes: "${m.artifact_dir}/**/FW.LATEST.bin"
+					} catch (all) {
+						println "catch error: $all"
+					}
 				}
 			}
 		])
