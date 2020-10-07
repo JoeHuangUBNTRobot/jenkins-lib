@@ -485,7 +485,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 				}
 				stage("Artifact ${m.name}") {
 					try {
-						archiveArtifacts artifacts: "${m.artifact_dir}/**" excludes: "${m.artifact_dir}/**/FW.LATEST.bin"
+						archiveArtifacts artifacts: "${m.artifact_dir}/**", excludes: "${m.artifact_dir}/**/FW.LATEST.bin"
 					} catch (all) {
 						println "catch error: $all"
 					}
