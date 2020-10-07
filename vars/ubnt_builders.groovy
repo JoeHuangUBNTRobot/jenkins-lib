@@ -678,7 +678,7 @@ def debpkg(Map job_options, configs=["all"])
 							def upload_path = m.upload_info.path.join('/')
 							def latest_path = m.upload_info.latest_path.join('/')
 							println "upload: $upload_path ,artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
-							ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
+							ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path, true)
 						}
 					}
 				}
