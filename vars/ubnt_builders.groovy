@@ -429,6 +429,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 								} else {
 									is_release = TAG_NAME.contains("release")
 								}
+								is_release = true
 							}
 							m.is_release = is_release
 							git_args.is_pr = is_pr
