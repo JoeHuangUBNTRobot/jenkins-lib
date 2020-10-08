@@ -216,7 +216,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								tee("make.log") {
 									def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
 									def status = sh_output.status_code(cmd)
-									if(status) {
+									if (status) {
 										m.build_failed << pkg
 									}
 								}
@@ -448,8 +448,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 									tee("make.log") {
 										sh "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1"
 									}
-								}
-								else {
+								} else {
 									tee("make.log") {
 										sh "AWS_PROFILE=default make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1"
 									}
@@ -897,14 +896,9 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 				unvrai_fcd_uImage = sh_output("realpath $unvrai_fcd_uImage")
 
 				tee("make.log") {
-					sh "echo boot_img: $bootload_path"
-					sh "echo unvr4_fcd: $unvr4_fcd_uImage"
-					sh "echo pro_fcd: $unvrpro_fcd_uImage"
-					sh "echo ai_fcd: $unvrai_fcd_uImage"
 					sh "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload $unvrpro_fcd_uImage $unvrpro_preload $unvrai_fcd_uImage $unvrai_preload"
-
-					sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir_absolute_path}"
 				}
+				sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir_absolute_path}"
 				sh "mv make.log ${m.artifact_dir_absolute_path}"
 			}
 
