@@ -540,11 +540,12 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			qa_test_steps: { m->
 				if (m.name.contains("fcd") || !name.contains("UNVR") || !m.is_release)
 					return
+				ref = TAG_NAME
 				build_date = ubnt_nas.get_fw_build_date('firmware.debbox', m.product)
 				url_prefix = "http://tpe-judo.rad.ubnt.com/build/firmware.debbox/latest_tag"
-				url = "$url_prefix/${m.name}/FW.LATEST.bin"
+				url = "$url_prefix/${ref}/${m.name}/FW.LATEST.bin"
 				echo "url: $url, build_date: $build_date"
-				sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com:8080/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$build_date --user scott:117c7831d9ba3fabf15b0a2b05e71f5cdb"
+				sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$build_date --user scott:117c7831d9ba3fabf15b0a2b05e71f5cdb"
 			}
 		])
 	}
