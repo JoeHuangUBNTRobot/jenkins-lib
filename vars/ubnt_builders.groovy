@@ -186,16 +186,15 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						}
 						println packagesName
 
-						buildPackages = packagesName.each {
+						packagesName.each {
 							def dependency = sh_output("grep -lr package/ -e $it")
-							return dependency.tokenize('\n').findResults {
-										def matcher = (it =~ pattern)
-										if(matcher.size()) {
-											return matcher[0].tokenize('/')[1]
-										} else {
-											return null
-										}
-									}
+							dependency.tokenize('\n').each {
+								println "package: $it"
+								def matcher = (it =~ pattern)
+								if(matcher.size()) {
+									buildPackages.add(matcher[0].tokenize('/')[1])
+								}
+							}
 						}
 						println "build packages start "
 						println buildPackages
