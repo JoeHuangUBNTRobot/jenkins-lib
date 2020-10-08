@@ -74,40 +74,40 @@ def get_job_options(String project)
  */
 def debfactory_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
- 	def build_jobs = []
- 	verify_required_params("debfactory_builder", job_options, [ 'build_archs'])
- 	echo "build $productSeries"
- 	def build_dist = 'stretch'
- 	if (job_options.containsKey('dist')) {
- 		build_dist = job_options.dist
- 	}
+	def build_jobs = []
+	verify_required_params("debfactory_builder", job_options, [ 'build_archs'])
+	echo "build $productSeries"
+	def build_dist = 'stretch'
+	if (job_options.containsKey('dist')) {
+		build_dist = job_options.dist
+	}
 
- 	job_options.build_archs.each { arch->
+	job_options.build_archs.each { arch->
 
- 		build_jobs.add([
- 			node: job_options.node ?: 'fwteam',
- 			name: 'debfactory',
- 			dist: "$build_dist",
- 			resultpath: "build/${build_dist}-${arch}",
- 			execute_order: 1,
- 			artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
- 			arch: arch,
- 			build_status:false,
- 			upload: job_options.upload ?: false,
- 			build_steps:{ m->
- 				sh "export"
- 				def buildPackages = []
- 				def diffPackages = []
- 				def pkginfo = [:]
- 				stage ("checkout $m.name") {
- 					m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
- 					sh "mkdir -p ${m.artifact_dir}"
- 					m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}")
+		build_jobs.add([
+			node: job_options.node ?: 'fwteam',
+			name: 'debfactory',
+			dist: "$build_dist",
+			resultpath: "build/${build_dist}-${arch}",
+			execute_order: 1,
+			artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
+			arch: arch,
+			build_status:false,
+			upload: job_options.upload ?: false,
+			build_steps:{ m->
+				sh "export"
+				def buildPackages = []
+				def diffPackages = []
+				def pkginfo = [:]
+				stage ("checkout $m.name") {
+					m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
+					sh "mkdir -p ${m.artifact_dir}"
+					m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}")
 
- 					dir("$m.build_dir") {
- 						def packagesName = []
- 						def co_map = checkout scm
- 						def url = co_map.GIT_URL
+					dir("$m.build_dir") {
+						def packagesName = []
+						def co_map = checkout scm
+						def url = co_map.GIT_URL
 						def git_args = git_helper.split_url(url)
 						def repository = git_args.repository
 
@@ -134,9 +134,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 							println "tag build: istag: $is_tag, is_atag:$is_atag"
 							git_args.local_branch = ref
 						} else {
-						 	ref = git_helper.current_branch()
-						 	if (!ref || ref == 'HEAD') {
-						 		ref = "origin/${BRANCH_NAME}"
+							ref = git_helper.current_branch()
+							if (!ref || ref == 'HEAD') {
+								ref = "origin/${BRANCH_NAME}"
 							} else {
 								git_args.local_branch = ref
 							}
@@ -159,24 +159,24 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						print m.upload_info
 
- 						def last_successful_commit = utility.getLastSuccessfulCommit()
- 						if(!last_successful_commit) {
- 							last_successful_commit = git_helper.first_commit()
- 						}
- 						print last_successful_commit
- 						def fileChanges = git_helper.get_file_changes(last_successful_commit)
- 						println "fileChanges: $fileChanges"
- 						println "split_lines: "
- 						def pattern = ~/package\/\S*\//
- 						diffPackages = fileChanges.tokenize('\n').findResults {
- 							def matcher = (it =~ pattern)
- 							if(matcher.size()) {
- 								return matcher[0].tokenize('/')[1]
+						def last_successful_commit = utility.getLastSuccessfulCommit()
+						if(!last_successful_commit) {
+							last_successful_commit = git_helper.first_commit()
+						}
+						print last_successful_commit
+						def fileChanges = git_helper.get_file_changes(last_successful_commit)
+						println "fileChanges: $fileChanges"
+						println "split_lines: "
+						def pattern = ~/package\/\S*\//
+						diffPackages = fileChanges.tokenize('\n').findResults {
+							def matcher = (it =~ pattern)
+							if(matcher.size()) {
+								return matcher[0].tokenize('/')[1]
 							} else {
 								return null
 							}
- 						}
- 						diffPackages = diffPackages.unique()
+						}
+						diffPackages = diffPackages.unique()
 
 						diffPackages.each  {
 							def path = "package/$it/Makefile"
@@ -184,7 +184,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								packagesName << it
 							}
 						}
- 						println packagesName
+						println packagesName
 
 						buildPackages = packagesName.each {
 							def dependency = sh_output("grep -lr package/ -e $it")
@@ -205,22 +205,22 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						println "resultpath: $m.resultpath"
 						println "artifact_dir: $m.artifact_dir"
 
- 					}
- 				}
- 				stage("build $m.name") {
- 					dir_cleanup("$m.build_dir") {
- 						try {
- 							sh "./debfactory clean container && ./debfactory setup"
- 							def build_list = buildPackages.join(" ")
- 							m.build_failed = []
- 							for (pkg in buildPackages) {
- 								def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1 >> make.log"
- 								def status = sh_output.status_code(cmd)
- 								if(status) {
- 									m.build_failed << pkg
- 								}
- 							}
- 							println "build_failed pkg: ${m.build_failed}"
+					}
+				}
+				stage("build $m.name") {
+					dir_cleanup("$m.build_dir") {
+						try {
+							sh "./debfactory clean container && ./debfactory setup"
+							def build_list = buildPackages.join(" ")
+							m.build_failed = []
+							for (pkg in buildPackages) {
+								def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1 >> make.log"
+								def status = sh_output.status_code(cmd)
+								if(status) {
+									m.build_failed << pkg
+								}
+							}
+							println "build_failed pkg: ${m.build_failed}"
 
 							buildPackages.each { pkg ->
 								sh_output("find ${m.resultpath} -name ${pkg}_*.deb -printf \"%f\n\"").tokenize('\n').findResults {
@@ -311,14 +311,14 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 		],
 		UNIFICORE:
 		[
-			UCKG2: [product: 'cloudkey-g2.apq8053', resultpath: 'target-cloudkey-g2.apq8053'],
-			UCKP: [product: 'cloudkey-plus.apq8053', resultpath: 'target-cloudkey-plus.apq8053'],
-			UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine'],
-			UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine'],
-			UNVRAI: [product: 'unifi-nvr-ai-protect.alpine', resultpath:'target-unifi-nvr-ai.alpine'],
-			UNVRFCD: [product: 'unifi-nvr4-fcd.alpine', resultpath:'target-unifi-nvr4.alpine'],
-			UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine'],
-			UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine']
+			UCKG2: [product: 'cloudkey-g2.apq8053', resultpath: 'target-cloudkey-g2.apq8053', tag_prefix: 'unifi-cloudkey'],
+			UCKP: [product: 'cloudkey-plus.apq8053', resultpath: 'target-cloudkey-plus.apq8053', tag_prefix: 'unifi-cloudkey'],
+			UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine', tag_prefix: 'unifi-nvr'],
+			UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
+			UNVRAI: [product: 'unifi-nvr-ai-protect.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr'],
+			UNVRFCD: [product: 'unifi-nvr4-fcd.alpine', resultpath:'target-unifi-nvr4.alpine', tag_prefix: 'unifi-nvr'],
+			UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
+			UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr']
 		]
 	]
 
@@ -334,23 +334,17 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	def build_product = build_series[productSeries]
 	def build_jobs = []
 
-	if (is_tag && TAG_NAME.startsWith("unifi-cloudkey") && productSeries != "UCK") {
-		return build_jobs
-	} else if (is_tag && TAG_NAME.startsWith("unifi-nvr") && productSeries != "UNVR") {
-		return build_jobs
-	}
-
 	build_product.each { name, target_map ->
-		if (is_tag && TAG_NAME.startsWith("unifi-cloudkey") && !name.contains("UCK") && productSeries == "UNIFICORE") {
+
+		if (is_tag && productSeries == "UNIFICORE" && !TAG_NAME.startsWith(target_map.tag_prefix)) {
 			return　　
-		} else if (is_tag && TAG_NAME.startsWith("unifi-nvr") && !name.contains("UNVR") && productSeries == "UNIFICORE") {
-			return
 		}
+
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
 			name: target_map.product,
 			resultpath: target_map.resultpath,
-			additional_store: target_map.additional_store ?: [],
+			additional_store: target_map.additional_store ?: [, tag_prefix: 'unifi-cloudkey'],
 			execute_order: 1,
 			artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
 			build_status:false,
@@ -421,53 +415,53 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 								println "tag build: istag: $is_tag, is_atag:$is_atag"
 								git_args.local_branch = ref
 							} else {
-							 	ref = git_helper.current_branch()
-							 	if (!ref || ref == 'HEAD') {
-							 		ref = "origin/${BRANCH_NAME}"
-						 		} else {
-						 			git_args.local_branch = ref
-						 		}
-						 	}
-						 	// decide release build logic
-						 	def is_release = false
-						 	if (is_tag) {
-						 		if(is_atag) {
-						 			is_release = true
-						 		} else {
-						 			is_release = TAG_NAME.contains("release")
-						 		}
-						 	}
-						 	m.is_release = is_release
-						 	git_args.is_pr = is_pr
-						 	git_args.is_tag = is_tag
-						 	git_args.is_atag = is_atag
-						 	git_args.ref = ref
-						 	m['git_args'] = git_args.clone()
-						 	m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
-						 	print m.upload_info
-						 	withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
-						 		// if bootloader url is changed please also modify the daily build script together
-						 		def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
-						 		if (productSeries == "UNVR") {
-						 			sh "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
-						 		}
-						 		else {
-						 			sh "AWS_PROFILE=default make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
-						 		}
+								ref = git_helper.current_branch()
+								if (!ref || ref == 'HEAD') {
+									ref = "origin/${BRANCH_NAME}"
+								} else {
+									git_args.local_branch = ref
+								}
+							}
+							// decide release build logic
+							def is_release = false
+							if (is_tag) {
+								if(is_atag) {
+									is_release = true
+								} else {
+									is_release = TAG_NAME.contains("release")
+								}
+							}
+							m.is_release = is_release
+							git_args.is_pr = is_pr
+							git_args.is_tag = is_tag
+							git_args.is_atag = is_atag
+							git_args.ref = ref
+							m['git_args'] = git_args.clone()
+							m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
+							print m.upload_info
+							withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
+								// if bootloader url is changed please also modify the daily build script together
+								def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
+								if (productSeries == "UNVR" || name.contains("UNVR")) {
+									sh "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+								}
+								else {
+									sh "AWS_PROFILE=default make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+								}
 
-						 	}
+							}
 
-						 	sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
-						 	sh "cp make.log /root/artifact_dir/"
-						 	if (productSeries == "UNVR") {
-						 		sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
-						 		sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
-						 		sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-4.1.37-ubnt /root/artifact_dir/"
-						 	}
+							sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
+							sh "cp make.log /root/artifact_dir/"
+							if (productSeries == "UNVR" || name.contains("UNVR")) {
+								sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
+								sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
+								sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-4.1.37-ubnt /root/artifact_dir/"
+							}
 
-						 	m.additional_store.each { additional_file ->
-						 		sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
-						 	}
+							m.additional_store.each { additional_file ->
+								sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
+							}
 							// In order to cleanup the dl and build directory
 							sh "chmod -R 777 ."
 						}
@@ -483,7 +477,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						def latest_path = m.upload_info.latest_path.join('/')
 						ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path, is_tag)
 					}
-					if (productSeries == "UNVR") {
+					if (productSeries == "UNVR" || name.contains("UNVR")) {
 						sh "rm -f ${m.docker_artifact_path}/uImage"
 						sh "rm -f ${m.docker_artifact_path}/vmlinux"
 						sh "rm -f ${m.docker_artifact_path}/vmlinuz-4.1.37-ubnt"
@@ -510,11 +504,11 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 		])
 	}
 	build_product.each { name, target_map ->
-		if (is_tag && TAG_NAME.startsWith("unifi-cloudkey") && !name.contains("UCK") && productSeries == "UNIFICORE") {
+
+		if (is_tag && productSeries == "UNIFICORE" && !TAG_NAME.startsWith(target_map.tag_prefix)) {
 			return　　
-		} else if (is_tag && TAG_NAME.startsWith("unifi-nvr") && !name.contains("UNVR") && productSeries == "UNIFICORE") {
-			return
 		}
+
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
 			name: target_map.product + "-QA",
@@ -856,9 +850,9 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 def preload_image_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
 	def build_jobs = []
- 	echo "build $productSeries"
+	echo "build $productSeries"
 
-   	build_jobs.add([
+	build_jobs.add([
 		node: job_options.node ?: "fwteam",
 		name: job_options.name,
 		artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}/arm64",
@@ -922,6 +916,6 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 				}
 			}
 		}
-   	])
-   	return build_jobs
+	])
+	return build_jobs
 }
