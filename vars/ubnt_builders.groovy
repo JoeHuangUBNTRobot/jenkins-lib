@@ -336,7 +336,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	build_product.each { name, target_map ->
 
 		if (is_tag && productSeries == "UNIFICORE" && !TAG_NAME.startsWith(target_map.tag_prefix)) {
-			return　　
+			return
 		}
 
 		build_jobs.add([
@@ -505,7 +505,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 	build_product.each { name, target_map ->
 
 		if (is_tag && productSeries == "UNIFICORE" && !TAG_NAME.startsWith(target_map.tag_prefix)) {
-			return　　
+			return
 		}
 
 		build_jobs.add([
