@@ -878,12 +878,12 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 			ws("${m.build_dir}") {
 				def co_map = checkout scm
 				deleteWsPath = env.WORKSPACE
-				bootload_path = "/home/dio/builder/amaz-alpinev2-boot/latest_tag/ubnt_unvr_all-1/boot.img"
-				unvr4_fcd_uImage = "/home/dio/builder/firmware.debbox/latest_tag/unifi-nvr4-fcd.alpine/uImage"
+				bootload_path = "/home/dio/builder/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img"
+				unvr4_fcd_uImage = "/home/dio/builder/firmware.debbox/heads/feature/unifi-core/latest/unifi-nvr4-fcd.alpine/uImage"
 				unvr4_preload = "spi-unifi-nvr4-${env.BUILD_TIMESTAMP}.bin"
-				unvrpro_fcd_uImage = "/home/dio/builder/firmware.debbox/latest_tag/unifi-nvr-pro-fcd.alpine/uImage"
+				unvrpro_fcd_uImage = "/home/dio/builder/firmware.debbox/heads/feature/unifi-core/latest/unifi-nvr-pro-fcd.alpine/uImage"
 				unvrpro_preload = "spi-unifi-nvr-pro-${env.BUILD_TIMESTAMP}.bin"
-				unvrai_fcd_uImage = "/home/dio/builder/firmware.debbox/latest_tag/unifi-nvr-ai-fcd.alpine/uImage"
+				unvrai_fcd_uImage = "/home/dio/builder/firmware.debbox/heads/feature/unifi-core/latest/unifi-nvr-ai-fcd.alpine/uImage"
 				unvrai_preload = "spi-unifi-nvr-ai-${env.BUILD_TIMESTAMP}.bin"
 
 				bootload_path = sh_output("realpath $bootload_path")
