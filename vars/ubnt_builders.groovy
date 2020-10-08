@@ -896,7 +896,9 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 				unvrai_fcd_uImage = sh_output("realpath $unvrai_fcd_uImage")
 
 				tee("make.log") {
-					sh "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload $unvrpro_fcd_uImage $unvrpro_preload $unvrai_fcd_uImage $unvrai_preload"
+					sh "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload ea1a"
+					sh "./preload_image.py $bootload_path $unvrpro_fcd_uImage $unvrpro_preload ea20"
+					sh "./preload_image.py $bootload_path $unvrai_fcd_uImage $unvrai_preload ea21"
 				}
 				sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir_absolute_path}"
 				sh "mv make.log ${m.artifact_dir_absolute_path}"
