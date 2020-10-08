@@ -687,7 +687,7 @@ def debpkg(Map job_options, configs=["all"])
 						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						print m.upload_info
 
-						sh "make package RELEASE_BUILD=${m.is_atag} ${extra} > make.log 2>&1"
+						sh "make package RELEASE_BUILD=${is_atag} ${extra} > make.log 2>&1"
 						sh "chmod -R 777 ."
 						sh "cp -rT ${m.dist} /root/artifact_dir || true"
 						sh "mv make.log /root/artifact_dir"
