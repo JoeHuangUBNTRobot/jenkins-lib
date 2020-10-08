@@ -53,6 +53,8 @@ def generate_buildinfo(Map git_args) {
 
 def upload(src_path, dst_path, latest_path, link_subdir = false)
 {
+	def nasinfo = [:]
+	def nasdomain = "http://tpe-judo.rad.ubnt.com/build"
 	def nasdir = "$HOME/builder"
 	def notmounted = sh_output.status_code("mountpoint -q $nasdir")
 	if(!notmounted) {
@@ -63,7 +65,12 @@ def upload(src_path, dst_path, latest_path, link_subdir = false)
 		sh "cp -rp $src_path $nas_path"
 		def src_basename = src_path.tokenize("/").pop()
 		def output_path = sh_output("realpath ${nas_path}/${src_basename}/* || true")
-		println "output_path = ${output_path}"
+		output_path.split('\n').each {
+			artifact_name = it.tokenize("/").pop()
+			artifact_url = it.replace(nasdir, nasdomain)
+			nasinfo[artifact_name] = artifact_url
+		}
+		println "nasinfo: $nasinfo"
 		if (link_subdir) {
 			sh "mkdir -p $latest_path"
 			sh "for subdir in $nas_path/*; do ln -srf -t $latest_path \$subdir; done"
