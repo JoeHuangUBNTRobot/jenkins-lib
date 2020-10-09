@@ -274,7 +274,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								def src_path = "$tmpdir/${pkgattr.name}*"
 								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
 								def latest_path = "${latest_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}"
-								ubnt_nas.upload(src_path, dst_path, latest_path, true)
+								ubnt_nas.upload(src_path, dst_path, latest_path)
 								sh "rm -f $tmpdir/*"
 							}
 							sh "rm -rf $tmpdir"
@@ -710,7 +710,7 @@ def debpkg(Map job_options, configs=["all"])
 							def upload_path = m.upload_info.path.join('/')
 							def latest_path = m.upload_info.latest_path.join('/')
 							println "upload: $upload_path ,artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
-							ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path, true)
+							ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
 						}
 					}
 				}
