@@ -3,8 +3,8 @@
 
 def call(str)
 {
-    if (str.size()) {
-        return str.replaceAll('\r', '').split('\n')
-    }
-    return []
+	if (str.size()) {
+		return str.replaceAll('\r', '').split('\n')
+	}
+	return []
 }
