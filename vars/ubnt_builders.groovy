@@ -275,6 +275,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
 								def latest_path = "${latest_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}"
 								ubnt_nas.upload(src_path, dst_path, latest_path, true)
+								sh "touch -m $latest_prefix"
 								sh "rm -f $tmpdir/*"
 							}
 							sh "rm -rf $tmpdir"
