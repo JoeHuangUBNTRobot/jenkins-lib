@@ -213,12 +213,10 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 							def build_list = buildPackages.join(" ")
 							m.build_failed = []
 							for (pkg in buildPackages) {
-								tee("make.log") {
-									def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
-									def status = sh_output.status_code(cmd)
-									if (status) {
-										m.build_failed << pkg
-									}
+								def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg > make.log 2>&1"
+								def status = sh_output.status_code(cmd)
+								if (status) {
+									m.build_failed << pkg
 								}
 							}
 							println "build_failed pkg: ${m.build_failed}"
@@ -445,9 +443,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 							withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
 								// if bootloader url is changed please also modify the daily build script together
 								def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
-								tee("make.log") {
-									sh "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1"
-								}
+								sh "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} > make.log 2>&1"
 							}
 
 							sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
@@ -681,9 +677,7 @@ def debpkg(Map job_options, configs=["all"])
 						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						print m.upload_info
 
-						tee("make.log") {
-							sh "make package RELEASE_BUILD=${is_atag} ${extra} 2>&1"
-						}
+						sh "make package RELEASE_BUILD=${is_atag} ${extra} > make.log 2>&1"
 						sh "chmod -R 777 ."
 						sh "cp -rT ${m.dist} /root/artifact_dir || true"
 						sh "mv make.log /root/artifact_dir"
@@ -814,9 +808,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						print m.upload_info
 
-						tee("make.log") {
-							sh "./release.sh $model $hw_ver 2>&1"
-						}
+						sh "./release.sh $model $hw_ver > make.log 2>&1"
 						sh "chmod -R 777 ."
 						sh "cp -rT ${m.dist} /root/artifact_dir || true"
 						sh "mv make.log /root/artifact_dir"
@@ -889,11 +881,9 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 				unvrpro_fcd_uImage = sh_output("realpath $unvrpro_fcd_uImage")
 				unvrai_fcd_uImage = sh_output("realpath $unvrai_fcd_uImage")
 
-				tee("make.log") {
-					sh "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload ea1a"
-					sh "./preload_image.py $bootload_path $unvrpro_fcd_uImage $unvrpro_preload ea20"
-					sh "./preload_image.py $bootload_path $unvrai_fcd_uImage $unvrai_preload ea21"
-				}
+				sh "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload ea1a >> make.log"
+				sh "./preload_image.py $bootload_path $unvrpro_fcd_uImage $unvrpro_preload ea20 >> make.log"
+				sh "./preload_image.py $bootload_path $unvrai_fcd_uImage $unvrai_preload ea21 >> make.log"
 				sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir_absolute_path}"
 				sh "mv make.log ${m.artifact_dir_absolute_path}"
 			}
