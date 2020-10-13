@@ -40,21 +40,29 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 
 				def job_names = parallel_jobs.keySet().sort()
 
-				def inheritmap = [:]
+				def inherit_job_map = [:]
 				def inheritlist = ['upload_info', 'upload', 'is_release', 'docker_artifact_path']
 				for (build_job in build_jobs) {
 					if (parallel_jobs[build_job.name].build_job.execute_order == curr_execute_order) {
 						def curr_job = parallel_jobs[build_job.name].build_job
+						def inheritmap = [:]
 						for (key in inheritlist) {
 							if (curr_job.containsKey(key)) {
 								inheritmap[key] = curr_job[key]
 							}
 						}
+						inherit_job_map[build_job.name] = inheritmap
 					}
+
 					if (parallel_jobs[build_job.name].build_job.execute_order > curr_execute_order) {
-						for (key in inheritlist) {
-							if (!parallel_jobs[build_job.name].build_job.containsKey(key)) {
-								parallel_jobs[build_job.name].build_job[key] = inheritmap[key]
+						inherit_job_name = build_job.name.split('-')[0]
+						println "inherit_job_name: ${inherit_job_name}"
+						if (inherit_job_name in inherit_job_map) {
+							inheritmap = inherit_job_map[inherit_job_name]
+							for (key in inheritlist) {
+								if (!parallel_jobs[build_job.name].build_job.containsKey(key)) {
+									parallel_jobs[build_job.name].build_job[key] = inheritmap[key]
+								}
 							}
 						}
 					}
