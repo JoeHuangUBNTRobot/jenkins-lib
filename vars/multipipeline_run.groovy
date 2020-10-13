@@ -44,10 +44,10 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 				def inheritlist = ['upload_info', 'upload', 'is_release', 'docker_artifact_path']
 				for (build_job in build_jobs) {
 					if (parallel_jobs[build_job.name].build_job.execute_order == curr_execute_order) {
-						def build_job = parallel_jobs[build_job.name].build_job
+						def curr_job = parallel_jobs[build_job.name].build_job
 						for (key in inheritlist) {
-							if (build_job.containsKey(key)) {
-								inheritmap[key] = build_job[key]
+							if (curr_job.containsKey(key)) {
+								inheritmap[key] = curr_job[key]
 							}
 						}
 					}
