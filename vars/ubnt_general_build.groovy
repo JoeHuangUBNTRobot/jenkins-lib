@@ -1,6 +1,6 @@
 def call(Map args)
 {
-	verify_required_params("ubnt_general_build", args, ['node', 'name', 'build_steps'])
+	verify_required_params("ubnt_general_build", args, ['node', 'name'])
 
 	def m = [ws: "", is_atag: false]
 	m << args
