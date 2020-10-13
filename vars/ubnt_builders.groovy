@@ -275,7 +275,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
 								def latest_path = "${latest_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}"
 								ubnt_nas.upload(src_path, dst_path, latest_path, true)
-								sh "touch -m $latest_prefix"
 								sh "rm -f $tmpdir/*"
 							}
 							sh "rm -rf $tmpdir"
@@ -482,19 +481,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					if (productSeries == "NX") {
 						sh "rm -f ${m.docker_artifact_path}/*.bin"
 						sh "rm -f ${m.docker_artifact_path}/*.img"
-					}
-					/*
-					m.additional_store.each { additional_file->
-						filename = additional_file.tokenize('/').pop()
-						sh "rm -f ${m.docker_artifact_path}/$filename"
-					}
-					*/
-				}
-				stage("Artifact ${m.name}") {
-					try {
-						archiveArtifacts artifacts: "${m.artifact_dir}/**", excludes: "${m.artifact_dir}/**/FW.LATEST.bin"
-					} catch (all) {
-						println "catch error: $all"
 					}
 				}
 			}
