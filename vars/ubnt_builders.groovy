@@ -480,7 +480,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
-			name: target_map.product + "-upload",
+			name: target_map.product + "__UPLOAD",
 			product: target_map.product,
 			execute_order: 2,
 			archive_steps: { m->
@@ -495,7 +495,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			archive_cleanup_steps: { m->
 				stage("Cleanup archive") {
 					try {
-						dir_cleanup("${m.docker_artifact_path}") {
+						dir_cleanup("${m.docker_artifact_path	}") {
 							deleteDir()
 						}
 					}
@@ -514,7 +514,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 
 		build_jobs.add([
 			node: job_options.node ?: 'debbox',
-			name: target_map.product + "-QA",
+			name: target_map.product + "__QA",
 			product: target_map.product,
 			execute_order: 3,
 			qa_test_steps: { m->

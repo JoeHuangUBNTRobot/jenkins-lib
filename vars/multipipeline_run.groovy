@@ -55,7 +55,7 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 					}
 
 					if (parallel_jobs[build_job.name].build_job.execute_order > curr_execute_order) {
-						inherit_job_name = build_job.name.split('-')[0]
+						inherit_job_name = build_job.name.split('__')[0]
 						println "inherit_job_name: ${inherit_job_name}"
 						if (inherit_job_name in inherit_job_map) {
 							inheritmap = inherit_job_map[inherit_job_name]
