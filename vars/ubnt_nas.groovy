@@ -78,10 +78,10 @@ def upload(src_path, dst_path, latest_path, link_subdir = false)
 	return nasinfo
 }
 
-def get_fw_build_date(project_name, product_name)
+def get_fw_build_date(firmware_relative_path)
 {
 	def nasdir = "$HOME/builder"
-	def fw_path = "$nasdir/$project_name/latest_tag/$product_name/FW.LATEST.bin"
+	def fw_path = "${nasdir}/${firmware_relative_path}"
 	fw_path = sh_output("readlink -f $fw_path")
 	def fw_name = fw_path.tokenize("/").pop()
 	def build_date_pattern = ~/(\d+)\.(\d+)\.bin$/

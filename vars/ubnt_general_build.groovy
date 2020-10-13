@@ -32,7 +32,9 @@ def call(Map args)
 							m['pre_checkout_steps'](m)
 						}
 						// do build_steps
-						m.build_status = m['build_steps'](m)
+						if(m.containsKey('build_steps')) {
+							m.build_status = m['build_steps'](m)
+						}
 					}
 				} catch (Exception e) {
 					echo "Caught build Exception ${e}"
@@ -41,9 +43,10 @@ def call(Map args)
 				} finally {
 					try {
 						if(m.containsKey('archive_steps')) {
-							stage("Archieve ${m.name}") {
-								m['archive_steps'](m)
-							}
+							m['archive_steps'](m)
+						}
+						if(m.containsKey('archive_cleanup_steps')) {
+							m['archive_cleanup_steps'](m)
 						}
 						if(m.containsKey('qa_test_steps')) {
 							stage("QA-Test ${m.name}") {

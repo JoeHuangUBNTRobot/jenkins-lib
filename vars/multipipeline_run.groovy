@@ -37,6 +37,28 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 				if(current_jobs.size() > 0) {
 					parallel current_jobs
 				}
+
+				def job_names = parallel_jobs.keySet().sort()
+
+				def inheritmap = [:]
+				def inheritlist = ['upload_info', 'upload', 'is_release', 'docker_artifact_path']
+				for (build_job in build_jobs) {
+					if (parallel_jobs[build_job.name].build_job.execute_order == curr_execute_order) {
+						def build_job = parallel_jobs[build_job.name].build_job
+						for (key in inheritlist) {
+							if (build_job.containsKey(key)) {
+								inheritmap[key] = build_job[key]
+							}
+						}
+					}
+					if (parallel_jobs[build_job.name].build_job.execute_order > curr_execute_order) {
+						for (key in inheritlist) {
+							if (!parallel_jobs[build_job.name].build_job.containsKey(key)) {
+								parallel_jobs[build_job.name].build_job[key] = inheritmap[key]
+							}
+						}
+					}
+				}
 			}
 		} catch (Exception e) {
 			throw e

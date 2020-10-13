@@ -374,7 +374,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						} else {
 							dockerImage = docker.image('debbox-arm64:v3')
 						}
-
 						dockerImage.inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.docker_artifact_path:/root/artifact_dir:rw") {
 							/*
 							 * tag build var:
@@ -441,31 +440,49 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 							m['git_args'] = git_args.clone()
 							m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 							print m.upload_info
-							withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
-								// if bootloader url is changed please also modify the daily build script together
-								def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
-								bash "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+							try {
+								withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
+									// if bootloader url is changed please also modify the daily build script together
+									def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
+									bash "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+								}
+								sh "cp make.log /root/artifact_dir/"
+								sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
+								if (productSeries == "UNVR" || name.contains("UNVR")) {
+									sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
+									sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
+									sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-4.1.37-ubnt /root/artifact_dir/"
+								}
+								m.additional_store.each { additional_file ->
+									sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
+								}
 							}
-
-							sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
-							sh "cp make.log /root/artifact_dir/"
-							if (productSeries == "UNVR" || name.contains("UNVR")) {
-								sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
-								sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
-								sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-4.1.37-ubnt /root/artifact_dir/"
+							catch(Exception e) {
+								throw e
 							}
-
-							m.additional_store.each { additional_file ->
-								sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
+							finally {
+								// In order to cleanup the dl and build directory
+								sh "chmod -R 777 ."
+								deleteDir()
 							}
-							// In order to cleanup the dl and build directory
-							sh "chmod -R 777 ."
 						}
-						deleteDir()
 					}
 				}
 				return true
-			},
+			}
+		])
+	}
+	build_product.each { name, target_map ->
+
+		if (is_tag && productSeries == "UNIFICORE" && !TAG_NAME.startsWith(target_map.tag_prefix)) {
+			return
+		}
+
+		build_jobs.add([
+			node: job_options.node ?: 'debbox',
+			name: target_map.product + "-upload",
+			product: target_map.product,
+			execute_order: 2,
 			archive_steps: { m->
 				stage("Upload to server") {
 					if (m.upload && m.containsKey('upload_info')) {
@@ -473,14 +490,17 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						def latest_path = m.upload_info.latest_path.join('/')
 						m.nasinfo = ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path, is_tag)
 					}
-					if (productSeries == "UNVR" || name.contains("UNVR")) {
-						sh "rm -f ${m.docker_artifact_path}/uImage"
-						sh "rm -f ${m.docker_artifact_path}/vmlinux"
-						sh "rm -f ${m.docker_artifact_path}/vmlinuz-4.1.37-ubnt"
+				}
+			},
+			archive_cleanup_steps: { m->
+				stage("Cleanup archive") {
+					try {
+						dir_cleanup("${m.docker_artifact_path}") {
+							deleteDir()
+						}
 					}
-					if (productSeries == "NX") {
-						sh "rm -f ${m.docker_artifact_path}/*.bin"
-						sh "rm -f ${m.docker_artifact_path}/*.img"
+					catch(Exception e) {
+						// do nothing
 					}
 				}
 			}
@@ -496,37 +516,16 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			node: job_options.node ?: 'debbox',
 			name: target_map.product + "-QA",
 			product: target_map.product,
-			execute_order: 2,
-			build_steps: { m ->
-				// only UNVR can have the release flag
-				if (is_tag) {
-					try {
-						git_helper.verify_is_atag(TAG_NAME)
-					} catch (all) {
-						println "catch error: $all"
-						is_atag = false
-					}
-					println "tag build: istag: $is_tag, is_atag:$is_atag"
-				}
-				m.is_release = false
-				def is_release = false
-				if (is_tag) {
-					if(is_atag) {
-						is_release = true
-					} else {
-						is_release = TAG_NAME.contains("release")
-					}
-				}
-				m.is_release = is_release
-				return true
-			},
+			execute_order: 3,
 			qa_test_steps: { m->
 				if (m.name.contains("fcd") || !name.contains("UNVR") || !m.is_release)
 					return
 				ref = TAG_NAME
-				build_date = ubnt_nas.get_fw_build_date('firmware.debbox', m.product)
-				url_prefix = "http://tpe-judo.rad.ubnt.com/build/firmware.debbox/latest_tag"
-				url = "$url_prefix/${ref}/${m.name}/FW.LATEST.bin"
+				url_domain = "http://tpe-judo.rad.ubnt.com/build"
+				url_prefix = "firmware.debbox/tags/"
+				relative_path = "${url_prefix}/${ref}/latest/${m.name}/FW.LATEST.bin"
+				build_date = ubnt_nas.get_fw_build_date(relative_path)
+				url = "${url_domain}/${relative_path}"
 				echo "url: $url, build_date: $build_date"
 				sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$build_date --user scott:117c7831d9ba3fabf15b0a2b05e71f5cdb"
 			}
@@ -664,17 +663,22 @@ def debpkg(Map job_options, configs=["all"])
 						m['git_args'] = git_args.clone()
 						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						print m.upload_info
-
-						bash "make package RELEASE_BUILD=${is_atag} ${extra} 2>&1 | tee make.log"
-						sh "chmod -R 777 ."
-						sh "cp -rT ${m.dist} /root/artifact_dir || true"
-						sh "mv make.log /root/artifact_dir"
+						try {
+							bash "make package RELEASE_BUILD=${is_atag} ${extra} 2>&1 | tee make.log"
+						}
+						catch(Exception e) {
+							throw e
+						}
+						finally {
+							sh "chmod -R 777 ."
+							sh "cp -rT ${m.dist} /root/artifact_dir || true"
+							sh "mv make.log /root/artifact_dir || true"
+							dir_cleanup("${deleteWsPath}") {
+								echo "cleanup ws ${deleteWsPath}"
+								deleteDir()
+							}
+						}
 					}
-				}
-
-				dir_cleanup("${deleteWsPath}") {
-					echo "cleanup ws ${deleteWsPath}"
-					deleteDir()
 				}
 				return true
 			},
@@ -795,19 +799,26 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 						m['git_args'] = git_args.clone()
 						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						print m.upload_info
-
-						bash "./release.sh $model $hw_ver 2>&1 | tee make.log"
-						sh "chmod -R 777 ."
-						sh "cp -rT ${m.dist} /root/artifact_dir || true"
-						sh "mv make.log /root/artifact_dir"
-						sh "rm -rf /root/artifact_dir/input || true"
+						try {
+							bash "./release.sh $model $hw_ver 2>&1 | tee make.log"
+						}
+						catch(Exception e) {
+							throw e
+						}
+						finally {
+							sh "chmod -R 777 ."
+							sh "cp -rT ${m.dist} /root/artifact_dir || true"
+							sh "mv make.log /root/artifact_dir"
+							sh "rm -rf /root/artifact_dir/input || true"
+							dir_cleanup("${deleteWsPath}") {
+								echo "cleanup ws ${deleteWsPath}"
+								deleteDir()
+							}
+						}
 					}
 				}
 
-				dir_cleanup("${deleteWsPath}") {
-					echo "cleanup ws ${deleteWsPath}"
-					deleteDir()
-				}
+
 				return true
 			},
 			archive_steps: { m ->
@@ -868,17 +879,22 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 				unvr4_fcd_uImage = sh_output("realpath $unvr4_fcd_uImage")
 				unvrpro_fcd_uImage = sh_output("realpath $unvrpro_fcd_uImage")
 				unvrai_fcd_uImage = sh_output("realpath $unvrai_fcd_uImage")
-
-				bash "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload ea1a | tee -a make.log"
-				bash "./preload_image.py $bootload_path $unvrpro_fcd_uImage $unvrpro_preload ea20 | tee -a make.log"
-				bash "./preload_image.py $bootload_path $unvrai_fcd_uImage $unvrai_preload ea21 | tee -a make.log"
-				sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir_absolute_path}"
-				sh "mv make.log ${m.artifact_dir_absolute_path}"
-			}
-
-			dir_cleanup("${deleteWsPath}") {
-				echo "cleanup ws ${deleteWsPath}"
-				deleteDir()
+				try {
+					bash "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload ea1a | tee -a make.log"
+					bash "./preload_image.py $bootload_path $unvrpro_fcd_uImage $unvrpro_preload ea20 | tee -a make.log"
+					bash "./preload_image.py $bootload_path $unvrai_fcd_uImage $unvrai_preload ea21 | tee -a make.log"
+					sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir_absolute_path}"
+					sh "mv make.log ${m.artifact_dir_absolute_path}"
+				}
+				catch(Exception e) {
+					throw e
+				}
+				finally {
+					dir_cleanup("${deleteWsPath}") {
+						echo "cleanup ws ${deleteWsPath}"
+						deleteDir()
+					}
+				}
 			}
 			return true
 		},
