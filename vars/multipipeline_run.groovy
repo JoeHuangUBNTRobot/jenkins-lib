@@ -61,7 +61,7 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 					jobDesc += "<h5> ${build_job.name} <h5>"
 					build_job.nasinfo.each { name, url ->
 						// product: link
-						jobDesc += "<a href=\"${name}\">${url}</a>"
+						jobDesc += "<a href=\"${url}\">${name}</a>"
 						jobDesc += "<br>"
 					}
 				}
