@@ -46,6 +46,7 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 			def mail_body=''
 			def project_build_status='Success'
 			def tag_build=false
+			def jobDesc = ""
 			job_names.each{ k->
 				def build_job = parallel_jobs[k].build_job
 				if (build_job.build_status == false) {
@@ -55,13 +56,22 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 					tag_build = true
 				}
 				mail_body = mail_body + build_job.name + '--- ' +  build_job.build_status + '\n'
-			}
 
+				if(build_job.containsKey('nasinfo')) {
+					jobDesc += "<h5> ${build_job.name} <h5>"
+					build_job.nasinfo.each {
+						// product: link
+						jobDesc += "<a href=\"${it.artifact_url}\">${it.artifact_name}</a>"
+						jobDesc += "<br>"
+					}
+				}
+			}
 			if (tag_build || (job_options.containsKey('mail') && job_options.mail)) {
 				// mail notification
 				mail bcc:'', cc:'', from:'', to:'steve.chen@ui.com',replyTo:'', subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}--${project_build_status}", body: "${mail_body}"
 				// mail bcc: '', body: "$m.branch_name", cc: '', from: '', replyTo: '', subject: 'test Mail', to: 'steve.chen@ui.com'
 			}
+			currentBuild.setDescription jobDesc
 
 		}
 	} // timestamps

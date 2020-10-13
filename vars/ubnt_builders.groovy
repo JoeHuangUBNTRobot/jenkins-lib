@@ -470,7 +470,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					if (m.upload && m.containsKey('upload_info')) {
 						def upload_path = m.upload_info.path.join('/')
 						def latest_path = m.upload_info.latest_path.join('/')
-						ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path, is_tag)
+						m.nasinfo = ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path, is_tag)
 					}
 					if (productSeries == "UNVR" || name.contains("UNVR")) {
 						sh "rm -f ${m.docker_artifact_path}/uImage"

@@ -54,13 +54,18 @@ def upload(src_path, dst_path, latest_path, link_subdir = false)
 		sh "cp -rp $src_path $nas_path"
 		if (nas_path.contains("firmware.debbox")) {
 			def src_basename = src_path.tokenize("/").pop()
-			def output_path = sh_output("realpath ${nas_path}/${src_basename}/* || true")
-			output_path.split('\n').each {
-				artifact_name = it.tokenize("/").pop()
-				artifact_url = it.replace(nasdir, nasdomain)
-				nasinfo[artifact_name] = artifact_url
+			try {
+				def output_path = sh_output("realpath ${nas_path}/${src_basename}/*")
+				output_path.split('\n').each {
+					artifact_name = it.tokenize("/").pop()
+					artifact_url = it.replace(nasdir, nasdomain)
+					nasinfo[artifact_name] = artifact_url
+				}
+				println "nasinfo: $nasinfo"
 			}
-			println "nasinfo: $nasinfo"
+			catch(Exception e) {
+				// build failed: do nothing
+			}
 		}
 		if (link_subdir) {
 			sh "mkdir -p $latest_path"
@@ -69,6 +74,8 @@ def upload(src_path, dst_path, latest_path, link_subdir = false)
 			sh "ln -srfT $nas_path $latest_path"
 		}
 	}
+
+	return nasinfo
 }
 
 def get_fw_build_date(project_name, product_name)
