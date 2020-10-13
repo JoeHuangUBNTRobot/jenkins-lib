@@ -215,7 +215,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 							def build_list = buildPackages.join(" ")
 							m.build_failed = []
 							for (pkg in buildPackages) {
-								def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg > make.log 2>&1"
+								def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
 								def status = sh_output.status_code(cmd)
 								if (status) {
 									m.build_failed << pkg
