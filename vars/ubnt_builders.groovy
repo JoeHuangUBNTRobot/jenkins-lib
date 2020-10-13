@@ -1,3 +1,5 @@
+def bash(String cmd) { sh("#!/usr/bin/env bash\nset -euo pipefail\n${cmd}") }
+
 def get_job_options(String project)
 {
 	def options = [
@@ -443,7 +445,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 							withEnv(["AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials", "AWS_CONFIG_FILE=/root/.aws/config"]) {
 								// if bootloader url is changed please also modify the daily build script together
 								def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
-								sh "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} > make.log 2>&1"
+								bash "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
 							}
 
 							sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
@@ -677,7 +679,7 @@ def debpkg(Map job_options, configs=["all"])
 						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						print m.upload_info
 
-						sh "make package RELEASE_BUILD=${is_atag} ${extra} > make.log 2>&1"
+						bash "make package RELEASE_BUILD=${is_atag} ${extra} 2>&1 | tee make.log"
 						sh "chmod -R 777 ."
 						sh "cp -rT ${m.dist} /root/artifact_dir || true"
 						sh "mv make.log /root/artifact_dir"
@@ -808,7 +810,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 						m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
 						print m.upload_info
 
-						sh "./release.sh $model $hw_ver > make.log 2>&1"
+						bash "./release.sh $model $hw_ver 2>&1 | tee make.log"
 						sh "chmod -R 777 ."
 						sh "cp -rT ${m.dist} /root/artifact_dir || true"
 						sh "mv make.log /root/artifact_dir"
@@ -881,9 +883,9 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 				unvrpro_fcd_uImage = sh_output("realpath $unvrpro_fcd_uImage")
 				unvrai_fcd_uImage = sh_output("realpath $unvrai_fcd_uImage")
 
-				sh "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload ea1a >> make.log"
-				sh "./preload_image.py $bootload_path $unvrpro_fcd_uImage $unvrpro_preload ea20 >> make.log"
-				sh "./preload_image.py $bootload_path $unvrai_fcd_uImage $unvrai_preload ea21 >> make.log"
+				bash "./preload_image.py $bootload_path $unvr4_fcd_uImage $unvr4_preload ea1a | tee -a make.log"
+				bash "./preload_image.py $bootload_path $unvrpro_fcd_uImage $unvrpro_preload ea20 | tee -a make.log"
+				bash "./preload_image.py $bootload_path $unvrai_fcd_uImage $unvrai_preload ea21 | tee -a make.log"
 				sh "mv $unvr4_preload $unvrpro_preload $unvrai_preload ${m.artifact_dir_absolute_path}"
 				sh "mv make.log ${m.artifact_dir_absolute_path}"
 			}
