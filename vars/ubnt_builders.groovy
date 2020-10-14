@@ -189,13 +189,10 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						println packagesName
 
 						packagesName.each {
-							def dependency = sh_output("grep -lr package/ -e $it")
+							def dependency = sh_output("./pkg-tools.py -r $it")
 							dependency.tokenize('\n').each {
 								println "package: $it"
-								def matcher = (it =~ pattern)
-								if(matcher.size()) {
-									buildPackages.add(matcher[0].tokenize('/')[1])
-								}
+								buildPackages << it
 							}
 						}
 						println "build packages start "
@@ -209,6 +206,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 					}
 				}
 				stage("build $m.name") {
+					if (buildPackages.size() == 0) {
+						return
+					}
 					dir_cleanup("$m.build_dir") {
 						try {
 							sh "./debfactory clean container && ./debfactory setup"
