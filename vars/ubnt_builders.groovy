@@ -448,6 +448,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 								}
 								sh "cp make.log /root/artifact_dir/"
 								sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
+								sh "cp build/${m.resultpath}/bootstrap/root/usr/lib/version /root/artifact_dir/"
 								if (productSeries == "UNVR" || name.contains("UNVR")) {
 									sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
 									sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
