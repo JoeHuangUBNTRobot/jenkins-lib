@@ -88,7 +88,8 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 				mail_body = mail_body + build_job.name + '--- ' +  build_job.build_status + '\n'
 
 				if(build_job.containsKey('nasinfo')) {
-					jobDesc += "<h5> ${build_job.name} <h5>"
+					display_name = build_job.name.replace('__UPLOAD','')
+					jobDesc += "<h5> ${display_name} <h5>"
 					build_job.nasinfo.each { name, url ->
 						// product: link
 						jobDesc += "<a href=\"${url}\">${name}</a>"
