@@ -101,6 +101,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 				def buildPackages = []
 				def diffPackages = []
 				def pkginfo = [:]
+				m.pkginfo = pkginfo
 				stage ("checkout $m.name") {
 					m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
 					sh "mkdir -p ${m.artifact_dir}"
@@ -236,7 +237,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								println "name: ${pkgattr.name} hash: ${pkgattr.hash} arch: ${pkgattr.arch}"
 								sh "find ${m.resultpath} -maxdepth 1 -type f -name ${pkgattr.name}* | xargs -I {} cp {} ${m.absolute_artifact_dir}"
 							}
-							m.pkginfo = pkginfo.clone()
 						}
 						catch(Exception e) {
 							m.build_status = false
