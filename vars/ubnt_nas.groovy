@@ -39,6 +39,9 @@ def generate_buildinfo(Map git_args) {
 	return output
 }
 
+def recursive_touch(base_path, latest_path) {
+	sh("a=$latest_path; while [ \"\$a\" != \"$base_path\" ]; do touch -m \$a; a=\$(dirname \$a); done")
+}
 
 def upload(src_path, dst_path, latest_path, link_subdir = false)
 {
@@ -73,6 +76,8 @@ def upload(src_path, dst_path, latest_path, link_subdir = false)
 		} else {
 			sh "flock -w 5 /tmp/safe_ln ln -srfT $nas_path $latest_path"
 		}
+
+		recursive_touch(nasdir, latest_path)
 	}
 
 	return nasinfo
