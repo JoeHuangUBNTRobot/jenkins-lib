@@ -99,8 +99,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 			build_steps:{ m->
 				sh "export"
 				def buildPackages = []
-				def pkginfo = [:]
-				m.pkginfo = pkginfo
+				m.pkginfo = [:]
 				stage ("checkout $m.name") {
 					m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
 					sh "mkdir -p ${m.artifact_dir}"
@@ -200,11 +199,11 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 									println it
 									def list = it.replaceAll(".deb","").tokenize('_')
 									if (list.size() == 3) {
-										pkginfo[it] = [ name: list[0].replaceAll("-dev",""), hash: list[1], arch: list[2] ]
+										m.pkginfo[it] = [ name: list[0].replaceAll("-dev",""), hash: list[1], arch: list[2] ]
 									}
 								}
 							}
-							pkginfo.each { pkgname, pkgattr ->
+							m.pkginfo.each { pkgname, pkgattr ->
 								println "name: ${pkgattr.name} hash: ${pkgattr.hash} arch: ${pkgattr.arch}"
 								sh "find ${m.resultpath} -maxdepth 1 -type f -name ${pkgattr.name}* | xargs -I {} cp {} ${m.absolute_artifact_dir}"
 							}
