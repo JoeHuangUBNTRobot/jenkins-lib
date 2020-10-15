@@ -490,12 +490,12 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			product: target_map.product,
 			execute_order: 3,
 			qa_test_steps: { m->
-				if (name.contains("fcd") || !name.contains("UNVR") || !m.is_release)
+				if (m.name.contains("fcd") || !name.contains("UNVR") || !m.is_release)
 					return
 				ref = TAG_NAME
 				url_domain = "http://tpe-judo.rad.ubnt.com/build"
-				url_prefix = "firmware.debbox/tags/"
-				relative_path = "${url_prefix}/${ref}/latest/${name}/FW.LATEST.bin"
+				url_prefix = "firmware.debbox/tags"
+				relative_path = "${url_prefix}/${ref}/latest/${m.product}/FW.LATEST.bin"
 				build_date = ubnt_nas.get_fw_build_date(relative_path)
 				url = "${url_domain}/${relative_path}"
 				echo "url: $url, build_date: $build_date"
