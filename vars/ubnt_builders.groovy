@@ -99,7 +99,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 			build_steps:{ m->
 				sh "export"
 				def buildPackages = []
-				def diffPackages = []
 				def pkginfo = [:]
 				m.pkginfo = pkginfo
 				stage ("checkout $m.name") {
@@ -108,7 +107,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 					m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}")
 
 					dir("$m.build_dir") {
-						def packagesName = []
 						def co_map = checkout scm
 						def url = co_map.GIT_URL
 						def git_args = git_helper.split_url(url)
@@ -163,47 +161,20 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						print m.upload_info
 
 						def last_successful_commit = utility.getLastSuccessfulCommit()
-						if(!last_successful_commit) {
+						if (!last_successful_commit) {
 							last_successful_commit = git_helper.first_commit()
 						}
 						print last_successful_commit
-						def fileChanges = git_helper.get_file_changes(last_successful_commit)
-						println "fileChanges: $fileChanges"
-						println "split_lines: "
-						def pattern = ~/package\/\S*\//
-						diffPackages = fileChanges.tokenize('\n').findResults {
-							def matcher = (it =~ pattern)
-							if(matcher.size()) {
-								return matcher[0].tokenize('/')[1]
-							} else {
-								return null
-							}
-						}
-						diffPackages = diffPackages.unique()
 
-						diffPackages.each  {
-							def path = "package/$it/Makefile"
-							sh_output("grep PKG_NAMES $path").split(':=')[1].split(' ').each {
-								packagesName << it
-							}
+						sh_output("./pkg-tools.py -rg $last_successful_commit").tokenize('\n').each {
+							println "package: $it"
+							buildPackages << it
 						}
-						println packagesName
-
-						packagesName.each {
-							def dependency = sh_output("./pkg-tools.py -r $it")
-							dependency.tokenize('\n').each {
-								println "package: $it"
-								buildPackages << it
-							}
-						}
-						println "build packages start "
-						println buildPackages
-						println "build packages end "
+						println "Packages to be built: $buildPackages"
 
 						sh 'ls -lahi'
 						println "resultpath: $m.resultpath"
 						println "artifact_dir: $m.artifact_dir"
-
 					}
 				}
 				stage("build $m.name") {
