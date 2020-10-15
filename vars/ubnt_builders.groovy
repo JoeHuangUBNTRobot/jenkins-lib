@@ -489,14 +489,14 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 					if (m.upload && m.containsKey('upload_info')) {
 						def upload_path = m.upload_info.path.join('/')
 						def latest_path = m.upload_info.latest_path.join('/')
-						m.nasinfo = ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path)
+						m.nasinfo = ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path, true)
 					}
 				}
 			},
 			archive_cleanup_steps: { m->
 				stage("Cleanup archive") {
 					try {
-						dir_cleanup("${m.docker_artifact_path	}") {
+						dir_cleanup("${m.docker_artifact_path}") {
 							deleteDir()
 						}
 					}
