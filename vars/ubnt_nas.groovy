@@ -70,14 +70,16 @@ def upload(src_path, dst_path, latest_path, link_subdir = false)
 				// build failed: do nothing
 			}
 		}
-		if (link_subdir) {
-			sh "mkdir -p $latest_path"
-			sh "for subdir in $nas_path/*; do ln -srf -t $latest_path \$subdir; done"
-		} else {
-			sh "flock -w 5 /tmp/safe_ln ln -srfT $nas_path $latest_path"
-		}
 
-		recursive_touch(nasdir, latest_path)
+		lock('nas_upload') {
+			if (link_subdir) {
+				sh "mkdir -p $latest_path"
+				sh "for subdir in $nas_path/*; do ln -srf -t $latest_path \$subdir; done"
+			} else {
+				sh "ln -srfT $nas_path $latest_path"
+			}
+			recursive_touch(nasdir, latest_path)
+		}
 	}
 
 	return nasinfo
