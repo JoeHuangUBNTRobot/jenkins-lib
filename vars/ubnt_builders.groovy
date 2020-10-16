@@ -160,7 +160,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						print m.upload_info
 
 						def last_successful_commit = utility.getLastSuccessfulCommit()
-						if (!last_successful_commit) {
+						if (!env.commitHash.isEmpty()) {
+							last_successful_commit = env.commitHash
+						} else if (!last_successful_commit) {
 							last_successful_commit = git_helper.first_commit()
 						}
 						print last_successful_commit
