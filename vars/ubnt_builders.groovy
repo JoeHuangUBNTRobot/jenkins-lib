@@ -498,10 +498,13 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 				build_date = ubnt_nas.get_fw_build_date(relative_path)
 				url = "${url_domain}/${relative_path}"
 				echo "url: $url, build_date: $build_date"
+
 				withCredentials([string(
 					credentialsId: "UNASHACKER_TOKEN",
 					variable:'jobtoken')]) {
-					sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$build_date --user unashacker:$jobtoken"
+					if (name == "UNVR") {
+						sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$build_date --user unashacker:$jobtoken"
+					}
 				}
 			}
 		])
