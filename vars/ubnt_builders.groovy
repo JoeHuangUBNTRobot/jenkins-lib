@@ -342,9 +342,15 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						if (productSeries == "NX") {
 							dockerImage = docker.image('registry.ubnt.com.tw:6666/ubuntu:nx')
 						} else {
-							dockerImage = docker.image('debbox-arm64:v3')
+							dockerImage = docker.image('debbox-arm64:v3ccache')
 						}
-						dockerImage.inside("-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v $HOME/.jenkinbuild/.aws:/root/.aws:ro -v $m.docker_artifact_path:/root/artifact_dir:rw") {
+						dockerImage.inside("-u 0 --privileged=true " + \
+							"-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " + \
+							"-v $HOME/.jenkinbuild/.aws:/root/.aws:ro " + \
+							"-v /ccache:/ccache " + \
+							"-v $m.docker_artifact_path:/root/artifact_dir:rw " + \
+							"--env CCACHE_DIR=/ccache " + \
+							"--env PATH=/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin") {
 							/*
 							 * tag build var:
 							 * TAG_NAME: unifi-cloudkey/v1.1.9
