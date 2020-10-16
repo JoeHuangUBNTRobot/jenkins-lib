@@ -166,7 +166,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						print last_successful_commit
 
 						sh_output("./pkg-tools.py -rg $last_successful_commit").tokenize('\n').each {
-							println "package: $it"
 							buildPackages << it
 						}
 						println "Packages to be built: $buildPackages"
