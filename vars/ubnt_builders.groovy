@@ -852,7 +852,7 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
 			ws("${m.build_dir}") {
 				def co_map = checkout scm
 				deleteWsPath = env.WORKSPACE
-				bootload_path = "/home/dio/builder/amaz-alpinev2-boot/tags/unifi-nvr/${env.ub_tag_version}/latest/ubnt_unvr_all-1/boot.img"
+				bootload_path = "/home/dio/builder/amaz-alpinev2-boot/${env.ub_path}/latest/ubnt_unvr_all-1/boot.img"
 				unvr4_fcd_uImage = "/home/dio/builder/firmware.debbox/tags/unifi-nvr/${env.fw_tag_version}/latest/unifi-nvr4-fcd.alpine/uImage"
 				unvr4_preload = "spi-unifi-nvr4-${env.fw_tag_version}-${env.BUILD_TIMESTAMP}.bin"
 				unvrpro_fcd_uImage = "/home/dio/builder/firmware.debbox/tags/unifi-nvr/${env.fw_tag_version}/latest/unifi-nvr-pro-fcd.alpine/uImage"
