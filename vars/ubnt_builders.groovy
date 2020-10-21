@@ -348,7 +348,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						dockerImage.inside("-u 0 --privileged=true " + \
 							"-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " + \
 							"-v $HOME/.jenkinbuild/.aws:/root/.aws:ro " + \
-							"-v /ccache:/ccache " + \
+							"-v /ccache:/ccache:rw " + \
 							"-v $m.docker_artifact_path:/root/artifact_dir:rw " + \
 							"--env CCACHE_DIR=/ccache " + \
 							"--env PATH=/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin") {
