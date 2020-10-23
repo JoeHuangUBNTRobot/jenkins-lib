@@ -36,6 +36,7 @@ def generate_buildinfo(Map git_args) {
 	def output_dir = [git_args.rev_num, BUILD_NUMBER, date, username, git_helper.short_sha(ref_sha)].join('_')
 	output.path = ref_path + output_dir
 	output.latest_path = latest_path
+	output.ref_path = ref_path
 	return output
 }
 
@@ -43,11 +44,21 @@ def recursive_touch(base_path, latest_path) {
 	sh("a=$latest_path; while [ \"\$a\" != \"$base_path\" ]; do touch -m \$a; a=\$(dirname \$a); done")
 }
 
+def get_nasdir()
+{
+	return "$HOME/builder"
+}
+
+def get_nasdomain()
+{
+	return "http://tpe-judo.rad.ubnt.com/build"
+}
+
 def upload(src_path, dst_path, latest_path, link_subdir = false)
 {
 	def nasinfo = [:]
-	def nasdomain = "http://tpe-judo.rad.ubnt.com/build"
-	def nasdir = "$HOME/builder"
+	def nasdomain = get_nasdomain()
+	def nasdir = get_nasdir()
 	def notmounted = sh_output.status_code("mountpoint -q $nasdir")
 	if(!notmounted) {
 		def nas_path = "$nasdir/$dst_path"

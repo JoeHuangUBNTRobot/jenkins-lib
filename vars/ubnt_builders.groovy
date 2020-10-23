@@ -93,6 +93,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 			resultpath: "build/${build_dist}-${arch}",
 			execute_order: 1,
 			artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
+			build_record: job_options.build_record ?: false,
 			arch: arch,
 			build_status:false,
 			upload: job_options.upload ?: false,
@@ -246,6 +247,13 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
 								def latest_path = "${latest_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}"
 								ubnt_nas.upload(src_path, dst_path, latest_path, true)
+								if(m.build_record) {
+									def ref_path = m.upload_info.ref_path
+									nas_dir = ubnt_nas.get_nasdir()
+									ref_path = "${nas_dir}/${ref_path}"
+									def relative_path = sh_output("realpath --relative-to=${ref_path} ${dst_path}")
+									sh "echo ${pkgattr.name} ${relative_path} >> ${ref_path}/.pkgupdate"
+								}
 								sh "rm -f $tmpdir/*"
 							}
 							sh "rm -rf $tmpdir"
