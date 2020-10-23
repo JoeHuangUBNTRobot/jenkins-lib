@@ -102,6 +102,9 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 				mail bcc:'', cc:'', from:'', to:'steve.chen@ui.com',replyTo:'', subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}--${project_build_status}", body: "${mail_body}"
 				// mail bcc: '', body: "$m.branch_name", cc: '', from: '', replyTo: '', subject: 'test Mail', to: 'steve.chen@ui.com'
 			}
+			if (project == 'debfactory_builder') {
+				slack_helper.notification(currentBuild.currentResult)
+			}
 			currentBuild.setDescription jobDesc
 
 		}
