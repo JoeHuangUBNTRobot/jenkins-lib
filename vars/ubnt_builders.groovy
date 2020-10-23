@@ -248,7 +248,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								def latest_path = "${latest_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}"
 								ubnt_nas.upload(src_path, dst_path, latest_path, true)
 								if(m.build_record) {
-									def ref_path = m.upload_info.ref_path
+									def ref_path = m.upload_info.ref_path.join('/')
 									nas_dir = ubnt_nas.get_nasdir()
 									ref_path = "${nas_dir}/${ref_path}"
 									def relative_path = sh_output("realpath --relative-to=${ref_path} ${dst_path}")
