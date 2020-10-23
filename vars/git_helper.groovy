@@ -109,7 +109,7 @@ def split_url(url)
 		owner:owner,
 		repository:repository,
 		git_suffix:git_suffix,
-		]
+	]
 }
 
 def get_file_changes(baseRev, curRev='')
