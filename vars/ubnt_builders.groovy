@@ -251,6 +251,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 									def ref_path = m.upload_info.ref_path.join('/')
 									nas_dir = ubnt_nas.get_nasdir()
 									ref_path = "${nas_dir}/${ref_path}"
+									dst_path = "${nas_dir}/${dst_path}"
 									def relative_path = sh_output("realpath --relative-to=${ref_path} ${dst_path}")
 									sh "echo ${pkgattr.name} ${relative_path} >> ${ref_path}/.pkgupdate"
 								}
