@@ -1,8 +1,13 @@
-def notification(String buildResult)
+def notification(String buildResult, slackBody  = "")
 {
+	msg = "Job: ${env.JOB_NAME} buildnumber: ${env.BUILD_NUMBER}"
 	if (buildResult == "SUCCESS") {
-		slackSend color: "good", message: "Job: ${env.JOB_NAME} buildnumber: ${env.BUILD_NUMBER} was successful"
+		msg += " was successful\n"
+		msg += slackBody
+		slackSend color: "good", message: "${msg}"
 	} else {
-		slackSend color: "danger", message: "Job: ${env.JOB_NAME} buildnumber: ${env.BUILD_NUMBER} was failed"
+		msg += " was failed\n"
+		msg += slackBody
+		slackSend color: "danger", message: "${msg}"
 	}
 }

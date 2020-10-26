@@ -77,14 +77,22 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 			def project_build_status='Success'
 			def tag_build=false
 			def jobDesc = ""
+			def slackBody = ""
+
 			job_names.each{ k->
 				def build_job = parallel_jobs[k].build_job
 				if (build_job.build_status == false) {
 					project_build_status = 'Failed'
+				} else {
+					project_build_status = 'Success'
 				}
-				if(build_job.is_atag) {
+				if (build_job.is_atag) {
 					tag_build = true
 				}
+				if (!build_job.name.contains('__')) {
+					slackBody = "- ${build_job.name}: ${project_build_status}\n"
+				}
+
 				mail_body = mail_body + build_job.name + '--- ' +  build_job.build_status + '\n'
 
 				if(build_job.containsKey('nasinfo')) {
@@ -96,10 +104,12 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 						jobDesc += "<br>"
 					}
 				}
-				if (project == 'debbox_builder' && tag_build) {
-					slack_helper.notification(currentBuild.currentResult)
-				}
 			}
+
+			if (job_options.containsKey('slackNotify') && job_options.slackNotify && tag_build) {
+				slack_helper.notification(currentBuild.currentResult, slackBody)
+			}
+
 			if (tag_build || (job_options.containsKey('mail') && job_options.mail)) {
 				// mail notification
 				mail bcc:'', cc:'', from:'', to:'steve.chen@ui.com',replyTo:'', subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}--${project_build_status}", body: "${mail_body}"
