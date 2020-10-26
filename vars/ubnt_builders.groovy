@@ -352,7 +352,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						if (productSeries == "NX") {
 							dockerImage = docker.image('registry.ubnt.com.tw:6666/ubuntu:nx')
 						} else {
-							dockerImage = docker.image('debbox-builder-stretch-arm64:v4')
+							dockerImage = docker.image('debbox-builder-stretch-arm64:latest')
 						}
 						dockerImage.inside("-u 0 --privileged=true " + \
 							"-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " + \
@@ -618,7 +618,7 @@ def debpkg(Map job_options, configs=["all"])
 				def deleteWsPath
 				ws("${m.build_dir}"){
 					deleteWsPath = env.WORKSPACE
-					def dockerImage = docker.image('debbox-builder-stretch-arm64:v4');
+					def dockerImage = docker.image('debbox-builder-stretch-arm64:latest');
 					def dockerArgs = "-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v ${m.absolute_artifact_dir}:/root/artifact_dir:rw"
 
 					dockerImage.inside(dockerArgs) {
@@ -747,7 +747,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 				def deleteWsPath
 				ws("${m.build_dir}"){
 					deleteWsPath = env.WORKSPACE
-					def dockerImage = docker.image('debbox-builder-stretch-arm64:v4');
+					def dockerImage = docker.image('debbox-builder-stretch-arm64:latest');
 					def dockerArgs = "-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v ${m.absolute_artifact_dir}:/root/artifact_dir:rw"
 
 					dockerImage.inside(dockerArgs) {
