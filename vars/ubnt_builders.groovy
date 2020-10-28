@@ -505,7 +505,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			product: target_map.product,
 			execute_order: 3,
 			qa_test_steps: { m->
-				if (m.name.contains("fcd") || !name.contains("UNVR") || !m.is_release)
+				if (m.name.contains("fcd"))
 					return
 				ref = TAG_NAME
 				def url_domain = "http://tpe-judo.rad.ubnt.com/build"
