@@ -520,7 +520,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						if (name == "UNVR") {
 							sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$build_date --user unashacker:$jobtoken"
 						} else if (name == "UNVRPRO") {
-							json = '{"parameter": [{"name":"url", "value":"${url}"}, {"name":"date", "value":"${build_date}"}, {"name":"model", "value":"UNVR-Pro"}, {"name":"product", "value":"unvr"}]}'
+							json = "{\"parameter\": [{\"name\":\"url\", \"value\":\"${url}\"}, {\"name\":\"date\", \"value\":\"${build_date}\"}, {\"name\":\"model\", \"value\":\"UNVR-Pro\"}, {\"name\":\"product\", \"value\":\"unvr\"}]}"
 							sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com/job/UNVR-Pro-FW-CI-test/build --data-urlencode json=$json --user unashacker:$jobtoken"
 						}
 					}
