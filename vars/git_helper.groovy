@@ -13,7 +13,7 @@ def sha(ref='HEAD')
 
 def short_sha(ref='HEAD')
 {
-	return sh_output("git rev-parse --short ${ref}")
+	return sh_output("git rev-parse --short ${ref}^{commit}")
 }
 
 def current_branch()
