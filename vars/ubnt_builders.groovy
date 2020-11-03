@@ -297,7 +297,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 			UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine', tag_prefix: 'unifi-nvr'],
 			UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
 			// UNVRAI: [product: 'unifi-nvr-ai-protect.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr'],
-			UNVRNK: [product: 'unifi-nvr-pro-nk.alpine', resultpath:'target-unifi-nvr-pro-nk.alpine', tag_prefix: 'unifi-nvr'],
+			UNVRNK: [product: 'unifi-nvr-pro-nk.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
 			UNVRFCD: [product: 'unifi-nvr4-fcd.alpine', resultpath:'target-unifi-nvr4.alpine', tag_prefix: 'unifi-nvr'],
 			UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
 			// UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr']
@@ -440,7 +440,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 								if (productSeries == "UNVR" || name.contains("UNVR")) {
 									sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
 									sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
-									sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-4.1.37-ubnt /root/artifact_dir/"
+									sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-*-ubnt /root/artifact_dir/"
 								}
 								m.additional_store.each { additional_file ->
 									sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
