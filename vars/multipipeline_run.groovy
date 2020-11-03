@@ -110,11 +110,11 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 				slack_helper.notification(currentBuild.currentResult, slackBody)
 			}
 
-			if (tag_build || (job_options.containsKey('mail') && job_options.mail)) {
-				// mail notification
-				mail bcc:'', cc:'', from:'', to:'steve.chen@ui.com',replyTo:'', subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}--${project_build_status}", body: "${mail_body}"
-				// mail bcc: '', body: "$m.branch_name", cc: '', from: '', replyTo: '', subject: 'test Mail', to: 'steve.chen@ui.com'
-			}
+			// if (tag_build || (job_options.containsKey('mail') && job_options.mail)) {
+			// 	// mail notification
+			// 	mail bcc:'', cc:'', from:'', to:'steve.chen@ui.com',replyTo:'', subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}--${project_build_status}", body: "${mail_body}"
+			// 	// mail bcc: '', body: "$m.branch_name", cc: '', from: '', replyTo: '', subject: 'test Mail', to: 'steve.chen@ui.com'
+			// }
 
 			currentBuild.setDescription jobDesc
 
