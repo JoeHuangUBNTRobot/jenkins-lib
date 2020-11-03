@@ -86,7 +86,7 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 				} else {
 					project_build_status = 'Success'
 				}
-				if (build_job.is_atag) {
+				if (build_job.is_release) {
 					tag_build = true
 				}
 				if (!build_job.name.contains('__')) {
