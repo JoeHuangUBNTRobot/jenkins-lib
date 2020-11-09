@@ -204,10 +204,11 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 							def build_list = buildPackages.join(" ")
 							m.build_failed = []
 							for (pkg in buildPackages) {
+								def cmd = 'true'
 								if (env.JOB_NAME.startsWith('debfactory-non-cross')) {
-									def cmd = "make arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
+									cmd = "make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes $pkg -j8 2>&1"
 								} else {
-									def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
+									cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
 								}
 								def status = sh_output.status_code(cmd)
 								if (status) {
@@ -289,6 +290,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 	return build_jobs
 }
 
+def debfactory_non_cross_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
+	return debfactory_builder(productSeries,job_options, build_series)
+}
 
 def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
