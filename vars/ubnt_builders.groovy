@@ -14,6 +14,12 @@ def get_job_options(String project)
 			build_archs: ['arm64'],
 			upload: true
 		],
+		debfactory_non_cross_builder:[
+			job_artifact_dir: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
+			node: 'fwteam_arm64',
+			build_archs: ['arm64'],
+			upload: true
+		],
 		analytic_report_builder:[
 			name: 'analytic_report',
 			node: 'fwteam',
@@ -77,7 +83,7 @@ def get_job_options(String project)
 def debfactory_builder(String productSeries, Map job_options=[:], Map build_series=[:])
 {
 	def build_jobs = []
-	verify_required_params("debfactory_builder", job_options, [ 'build_archs'])
+	verify_required_params("debfactory_builder", job_options, [ 'build_archs' ])
 	echo "build $productSeries"
 	def build_dist = 'stretch'
 	if (job_options.containsKey('dist')) {
@@ -168,8 +174,14 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						}
 						print last_successful_commit
 
-						sh_output("./pkg-tools.py -lf -rg $last_successful_commit").tokenize('\n').each {
-							buildPackages << it
+						if (env.JOB_NAME.startsWith('debfactory-non-cross'))
+							sh_output("./pkg-tools.py -nc -lf -rg $last_successful_commit").tokenize('\n').each {
+								buildPackages << it
+							}
+						else {
+							sh_output("./pkg-tools.py -lf -rg $last_successful_commit").tokenize('\n').each {
+								buildPackages << it
+							}
 						}
 						println "Packages to be built: $buildPackages"
 
@@ -184,11 +196,19 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 					}
 					dir_cleanup("$m.build_dir") {
 						try {
-							sh "./debfactory clean container && ./debfactory setup"
+							if (env.JOB_NAME.startsWith('debfactory-non-cross')) {
+								sh "rm -rf build"
+							} else {
+								sh "./debfactory clean container && ./debfactory setup"
+							}
 							def build_list = buildPackages.join(" ")
 							m.build_failed = []
 							for (pkg in buildPackages) {
-								def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
+								if (env.JOB_NAME.startsWith('debfactory-non-cross')) {
+									def cmd = "make arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
+								} else {
+									def cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
+								}
 								def status = sh_output.status_code(cmd)
 								if (status) {
 									m.build_failed << pkg
@@ -215,7 +235,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 							throw e
 						}
 						finally {
-							sh "./debfactory clean full"
+							if (!env.JOB_NAME.startsWith('debfactory-non-cross')) {
+								sh "./debfactory clean full"
+							}
 							deleteDir()
 							if (m.build_failed.size() == 0) {
 								m.build_status = true
