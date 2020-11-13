@@ -209,7 +209,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 					}
 					dir_cleanup("$m.build_dir") {
 						try {
-							def dockerImage = docker.image('dio-debfactory-builder:v14')
+							def dockerImage = docker.image('dio-debfactory-builder:latest')
 							if (m.non_cross) {
 								dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
 							}
@@ -390,7 +390,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						if (productSeries == "NX") {
 							dockerImage = docker.image('registry.ubnt.com.tw:6666/ubuntu:nx')
 						} else {
-							dockerImage = docker.image('debbox-builder-stretch-arm64:latest')
+							dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
 						}
 						def docker_args = get_docker_args(m.docker_artifact_path) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
 						dockerImage.inside(docker_args) {
@@ -786,7 +786,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 				def deleteWsPath
 				ws("${m.build_dir}"){
 					deleteWsPath = env.WORKSPACE
-					def dockerImage = docker.image('debbox-builder-stretch-arm64:latest')
+					def dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
 
 					dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
 						sh "pwd"
