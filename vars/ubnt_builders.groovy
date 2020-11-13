@@ -482,7 +482,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 							}
 							finally {
 								// In order to cleanup the dl and build directory
-								sh "rm -rf build"
+								sh "chmod -R 777 ."
 								deleteDir()
 							}
 						}
