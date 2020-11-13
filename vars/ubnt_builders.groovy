@@ -16,14 +16,16 @@ def get_job_options(String project)
 		],
 		debfactory_non_cross_builder:[
 			job_artifact_dir: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
-			node: 'fwteam_arm64',
+			node: 'fwteam',
 			build_archs: ['arm64'],
-			upload: true
+			upload: true,
+			non_cross: true
 		],
 		analytic_report_builder:[
 			name: 'analytic_report',
 			node: 'fwteam',
-			upload: true
+			upload: true,
+			non_cross: true
 		],
 		disk_smart_mon_builder:[
 			name: 'disk_smart_mon',
@@ -75,6 +77,16 @@ def get_job_options(String project)
 	return options.get(project, [:])
 
 }
+
+def get_docker_args(artifact_dir) {
+	return "-u 0 --privileged=true " +
+		"-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " +
+		"-v ${artifact_dir}:/root/artifact_dir:rw"
+		"-v /ccache:/ccache:rw " + \
+		"--env CCACHE_DIR=/ccache " + \
+		"--env PATH=/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+}
+
 /*
  * resultpath: the output dir that indicate where the binary generated
  * artifact_dir: this is the directory created in our build machine for storing the binary (relative path for artifact)
@@ -103,6 +115,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 			arch: arch,
 			build_status:false,
 			upload: job_options.upload ?: false,
+			non_cross: job_options.non_cross ?: false,
 			build_steps:{ m->
 				sh "export"
 				def buildPackages = []
@@ -174,7 +187,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 						}
 						print last_successful_commit
 
-						if (env.JOB_NAME.startsWith('debfactory-non-cross')) {
+						if (m.non_cross) {
 							sh_output("./pkg-tools.py -nc -lf -rg $last_successful_commit").tokenize('\n').each {
 								buildPackages << it
 							}
@@ -196,39 +209,36 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 					}
 					dir_cleanup("$m.build_dir") {
 						try {
-							if (env.JOB_NAME.startsWith('debfactory-non-cross')) {
-								sh "rm -rf build"
-							} else {
-								sh "./debfactory clean container && ./debfactory setup"
+							def dockerImage = docker.image('dio-debfactory-builder:v14')
+							if (m.non_cross) {
+								dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
 							}
-							def build_list = buildPackages.join(" ")
-							m.build_failed = []
-							for (pkg in buildPackages) {
-								def cmd = 'true'
-								if (env.JOB_NAME.startsWith('debfactory-non-cross')) {
-									cmd = "make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes $pkg -j8 2>&1"
-								} else {
-									cmd = "./debfactory build arch=$m.arch dist=$m.dist builddep=yes $pkg 2>&1"
-								}
-								def status = sh_output.status_code(cmd)
-								if (status) {
-									m.build_failed << pkg
-								}
-							}
-							println "build_failed pkg: ${m.build_failed}"
-
-							buildPackages.each { pkg ->
-								sh_output("find ${m.resultpath} -name ${pkg}_*.deb -printf \"%f\n\"").tokenize('\n').findResults {
-									println it
-									def list = it.replaceAll(".deb","").tokenize('_')
-									if (list.size() == 3) {
-										m.pkginfo[it] = [ name: list[0].replaceAll("-dev",""), hash: list[1], arch: list[2] ]
+							dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
+								def build_list = buildPackages.join(" ")
+								m.build_failed = []
+								for (pkg in buildPackages) {
+									def cmd = "make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes $pkg 2>&1"
+									def status = sh_output.status_code(cmd)
+									if (status) {
+										m.build_failed << pkg
 									}
 								}
-							}
-							m.pkginfo.each { pkgname, pkgattr ->
-								println "name: ${pkgattr.name} hash: ${pkgattr.hash} arch: ${pkgattr.arch}"
-								sh "find ${m.resultpath} -maxdepth 1 -type f -name ${pkgattr.name}* | xargs -I {} cp {} ${m.absolute_artifact_dir}"
+								println "build_failed pkg: ${m.build_failed}"
+
+								buildPackages.each { pkg ->
+									sh_output("find ${m.resultpath} -name ${pkg}_*.deb -printf \"%f\n\"").tokenize('\n').findResults {
+										println it
+										def list = it.replaceAll(".deb","").tokenize('_')
+										if (list.size() == 3) {
+											m.pkginfo[it] = [ name: list[0].replaceAll("-dev",""), hash: list[1], arch: list[2] ]
+										}
+									}
+								}
+								m.pkginfo.each { pkgname, pkgattr ->
+									println "name: ${pkgattr.name} hash: ${pkgattr.hash} arch: ${pkgattr.arch}"
+									sh "find ${m.resultpath} -maxdepth 1 -type f -name ${pkgattr.name}* | xargs -I {} cp {} /root/artifact_dir"
+								}
+								sh "make distclean 2>&1"
 							}
 						}
 						catch(Exception e) {
@@ -236,9 +246,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 							throw e
 						}
 						finally {
-							if (!env.JOB_NAME.startsWith('debfactory-non-cross')) {
-								sh "./debfactory clean full"
-							}
 							deleteDir()
 							if (m.build_failed.size() == 0) {
 								m.build_status = true
@@ -294,7 +301,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 }
 
 def debfactory_non_cross_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
-	return debfactory_builder(productSeries,job_options, build_series)
+	return debfactory_builder(productSeries, job_options, build_series)
 }
 
 def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[:])
@@ -385,13 +392,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 						} else {
 							dockerImage = docker.image('debbox-builder-stretch-arm64:latest')
 						}
-						dockerImage.inside("-u 0 --privileged=true " + \
-							"-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " + \
-							"-v $HOME/.jenkinbuild/.aws:/root/.aws:ro " + \
-							"-v /ccache:/ccache:rw " + \
-							"-v $m.docker_artifact_path:/root/artifact_dir:rw " + \
-							"--env CCACHE_DIR=/ccache " + \
-							"--env PATH=/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin") {
+						def docker_args = get_docker_args(m.docker_artifact_path) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
+						dockerImage.inside(docker_args) {
 							/*
 							 * tag build var:
 							 * TAG_NAME: unifi-cloudkey/v1.1.9
@@ -480,7 +482,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 							}
 							finally {
 								// In order to cleanup the dl and build directory
-								sh "chmod -R 777 ."
+								sh "rm -rf build"
 								deleteDir()
 							}
 						}
@@ -642,6 +644,7 @@ def debpkg(Map job_options, configs=["all"])
 			dist: job_options.dist ?: 'dist',
 			execute_order: 1,
 			upload: job_options.upload ?: false,
+			non_cross: job_options.non_cross ?: false,
 			pre_checkout_steps: { m->
 				m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
 			},
@@ -652,10 +655,12 @@ def debpkg(Map job_options, configs=["all"])
 				def deleteWsPath
 				ws("${m.build_dir}"){
 					deleteWsPath = env.WORKSPACE
-					def dockerImage = docker.image('debbox-builder-stretch-arm64:latest');
-					def dockerArgs = "-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v ${m.absolute_artifact_dir}:/root/artifact_dir:rw"
+					def dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
+					if (m.non_cross) {
+						dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
+					}
 
-					dockerImage.inside(dockerArgs) {
+					dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
 						sh "pwd"
 						def co_map = checkout scm
 						sh "ls -alhi"
@@ -781,10 +786,9 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 				def deleteWsPath
 				ws("${m.build_dir}"){
 					deleteWsPath = env.WORKSPACE
-					def dockerImage = docker.image('debbox-builder-stretch-arm64:latest');
-					def dockerArgs = "-u 0 --privileged=true -v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro -v ${m.absolute_artifact_dir}:/root/artifact_dir:rw"
+					def dockerImage = docker.image('debbox-builder-stretch-arm64:latest')
 
-					dockerImage.inside(dockerArgs) {
+					dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
 						sh "pwd"
 						def co_map = checkout scm
 						sh "ls -alhi"
