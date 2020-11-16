@@ -274,7 +274,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name ${pkgattr.name}_* | xargs -I {} cp {} ${tmpdir}"
 								sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name ${pkgattr.name}-* | xargs -I {} cp {} ${tmpdir}"
 								def src_path = "$tmpdir/${pkgattr.name}*"
-								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${env.BUILD_TIMESTAMP}_${pkgattr.hash}/"
+								def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${pkgattr.hash}/"
 								def latest_path = "${latest_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}"
 								ubnt_nas.upload(src_path, dst_path, latest_path, true)
 								if (m.build_record) {
