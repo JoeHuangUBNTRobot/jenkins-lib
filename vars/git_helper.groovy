@@ -39,7 +39,6 @@ def ref_info(ref) {
         is_branch: false,
         is_sha: false,
         ]
-    def resolved_ref = null
     if (output != '') {
         def ref_map = split_lines(output).collectEntries {
             def tokens = it.split()

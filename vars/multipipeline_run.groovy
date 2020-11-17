@@ -37,8 +37,6 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
                     parallel current_jobs
                 }
 
-                def job_names = parallel_jobs.keySet().sort()
-
                 def inherit_job_map = [:]
                 def inheritlist = ['upload_info', 'upload', 'is_release', 'docker_artifact_path']
                 for (build_job in build_jobs) {

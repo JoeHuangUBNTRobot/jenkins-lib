@@ -210,7 +210,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
                             }
                             dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
-                                def build_list = buildPackages.join(' ')
                                 m.build_failed = []
                                 for (pkg in buildPackages) {
                                     def cmd = "make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes $pkg 2>&1"
@@ -611,12 +610,12 @@ def debpkg(Map job_options, configs=['all']) {
 
     configs.each { config ->
         def extra = ''
-        def builder = 'stretch-arm64'
+        // def builder = 'stretch-arm64' // TODO: for future debian dist usage
         def artifact_prefix = config
 
         if (config != 'all') {
             def (dist, arch) = config.split('/')
-            builder = "${dist}-${arch}"
+            // builder = "${dist}-${arch}" // TODO: for future debian dist usage
             extra = "DEB_TARGET_ARCH=${arch}"
         }
 
@@ -876,7 +875,7 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
             m.artifact_dir_absolute_path = sh_output("readlink -f ${m.artifact_dir}")
             def deleteWsPath
             ws("${m.build_dir}") {
-                def co_map = checkout scm
+                checkout scm
                 deleteWsPath = env.WORKSPACE
                 bootload_path = "/home/dio/builder/amaz-alpinev2-boot/${env.ub_path}/latest/ubnt_unvr_all-1/boot.img"
                 unvr4_fcd_uImage = "/home/dio/builder/firmware.debbox/tags/unifi-nvr/${env.fw_tag_version}/latest/unifi-nvr4-fcd.alpine/uImage"
