@@ -1,5 +1,4 @@
 @NonCPS
-def call(value, pattern)
-{
-    return (value =~ pattern).collect {it}
+def call(value, pattern) {
+    return (value =~ pattern).collect { it }
 }

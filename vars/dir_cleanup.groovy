@@ -1,11 +1,10 @@
-def call(path, body)
-{
+def call(path, body) {
     try {
         dir(path) {
             body()
         }
     } finally {
-        dir(path + "@tmp") {
+        dir(path + '@tmp') {
             deleteDir()
         }
     }
