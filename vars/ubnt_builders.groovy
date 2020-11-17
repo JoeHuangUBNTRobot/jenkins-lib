@@ -81,9 +81,9 @@ def get_job_options(String project)
 def get_docker_args(artifact_dir) {
 	return "-u 0 --privileged=true " +
 		"-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " +
-		"-v ${artifact_dir}:/root/artifact_dir:rw"
-		"-v /ccache:/ccache:rw " + \
-		"--env CCACHE_DIR=/ccache " + \
+		"-v ${artifact_dir}:/root/artifact_dir:rw" +
+		"-v /ccache:/ccache:rw " +
+		"--env CCACHE_DIR=/ccache " +
 		"--env PATH=/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 }
 
