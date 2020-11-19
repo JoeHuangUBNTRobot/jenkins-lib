@@ -941,7 +941,7 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
         node: job_options.node ?: 'fwteam',
         name: job_options.name,
         artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
-        dist: job_options.dist ?: 'dist',
+        dist: job_options.dist ?: 'build/dist',
         execute_order: 1,
         upload: job_options.upload ?: false,
         non_cross: job_options.non_cross ?: false,
