@@ -953,7 +953,7 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
             m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/stretch/arm64")
 
             def return_status = false
-            ws("${m.build_dir}/ustd") {
+            dir("${m.build_dir}/ustd") {
                 stage('checkout source') {
                     sh 'pwd'
                     checkout scm
@@ -968,7 +968,7 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
                 }
             }
 
-            ws("${m.build_dir}/debfactory") {
+            dir("${m.build_dir}/debfactory") {
                 dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
                 stage('checkout debfactory helper') {
                     git branch: 'master',
@@ -999,6 +999,11 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
             dir_cleanup("${m.build_dir}/ustd") {
             }
             return return_status
+        },
+        archive_steps: { m ->
+            stage("Artifact ${m.name}") {
+                archiveArtifacts artifacts: "${m.artifact_dir}/**"
+            }
         }
     ])
 
