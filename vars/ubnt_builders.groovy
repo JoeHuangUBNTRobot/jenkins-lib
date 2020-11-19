@@ -70,6 +70,11 @@ def get_job_options(String project) {
             name: 'preload_image',
             node: 'fwteam',
             upload: true
+        ],
+        ustd_checker:[
+            name: 'ustd',
+            node: 'fwteam',
+            upload: false
         ]
     ]
 
@@ -924,5 +929,78 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
             }
         }
     ])
+    return build_jobs
+}
+
+def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]) {
+    def build_jobs = []
+
+    verify_required_params('ustd', job_options, ['name'])
+
+    build_jobs.add([
+        node: job_options.node ?: 'fwteam',
+        name: job_options.name,
+        artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
+        dist: job_options.dist ?: 'dist',
+        execute_order: 1,
+        upload: job_options.upload ?: false,
+        non_cross: job_options.non_cross ?: false,
+        pre_checkout_steps: { m->
+            m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
+        },
+        build_steps: { m ->
+            sh "mkdir -p ${m.artifact_dir}/stretch/arm64"
+            m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/stretch/arm64")
+
+            def return_status = false
+            ws("${m.build_dir}/ustd") {
+                stage('checkout source') {
+                    sh 'pwd'
+                    checkout scm
+                    sh 'ls -alhi'
+                }
+                stage('pylint check error') {
+                    def dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
+                    dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
+                        sh 'apt-get update && apt-get install python3-systemd'
+                        sh 'pylint3 -E ustd/*.py ustd/*/*.py'
+                    }
+                }
+            }
+
+            ws("${m.build_dir}/debfactory") {
+                dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
+                stage('checkout debfactory helper') {
+                    git branch: 'master',
+                        credentialsId: 'ken.lu-ssh',
+                        url: 'git@github.com:ubiquiti/debfactory.git'
+                    sh 'mkdir -p ./source && cp -rl ../ustd ./source/ustd'
+                }
+
+                stage('build deb package') {
+                    dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
+                        try {
+                            bash 'make ARCH=arm64 DIST=stretch BUILD_DEPEND=yes ustd 2>&1 | tee make.log'
+                            return_status = true
+                        }
+                        catch (Exception e) {
+                            throw e
+                        }
+                        finally {
+                            sh 'chmod -R 777 .'
+                            sh "cp -rT ${m.dist} /root/artifact_dir || true"
+                            sh 'mv make.log /root/artifact_dir || true'
+                        }
+                    }
+                }
+            }
+            dir_cleanup("${m.build_dir}/debfactory") {
+            }
+            dir_cleanup("${m.build_dir}/ustd") {
+            }
+            return return_status
+        }
+    ])
+
     return build_jobs
 }

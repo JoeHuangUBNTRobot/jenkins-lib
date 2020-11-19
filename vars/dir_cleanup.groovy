@@ -4,7 +4,13 @@ def call(path, body) {
             body()
         }
     } finally {
-        dir(path + '@tmp') {
+        dir(path) {
+            echo "cleanup dir ${path}"
+            deleteDir()
+        }
+        def tmp_dir = "${path}@tmp"
+        dir(tmp_dir) {
+            echo "cleanup dir ${tmp_dir}"
             deleteDir()
         }
     }
