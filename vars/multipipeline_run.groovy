@@ -75,18 +75,21 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
             def tag_build = false
             def jobDesc = ''
             def slackBody = ''
+            def job_build_status = currentBuild.currentResult
 
             job_names.each { k->
                 def build_job = parallel_jobs[k].build_job
-                if (build_job.build_status == false) {
-                    project_build_status = 'Failed'
-                } else {
-                    project_build_status = 'Success'
-                }
                 if (build_job.is_release) {
                     tag_build = true
                 }
+
                 if (!build_job.name.contains('__')) {
+                    if (build_job.build_status == false) {
+                        job_build_status = 'FAILED'
+                        project_build_status = 'Failed'
+                    } else {
+                        project_build_status = 'Success'
+                    }
                     slackBody = "- ${build_job.name}: ${project_build_status}\n"
                 }
 
@@ -104,7 +107,7 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
             }
 
             if (job_options.containsKey('slackNotify') && job_options.slackNotify && tag_build) {
-                slack_helper.notification(currentBuild.currentResult, slackBody)
+                slack_helper.notification(job_build_status, slackBody)
             }
 
             // if (tag_build || (job_options.containsKey('mail') && job_options.mail)) {
