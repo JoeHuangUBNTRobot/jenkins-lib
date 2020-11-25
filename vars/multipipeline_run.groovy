@@ -90,7 +90,7 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
                     } else {
                         project_build_status = 'Success'
                     }
-                    slackBody = "- ${build_job.name}: ${project_build_status}\n"
+                    slackBody += ">- ${build_job.name}: ${project_build_status}\n"
                 }
 
                 mail_body = mail_body + build_job.name + '--- ' +  build_job.build_status + '\n'
