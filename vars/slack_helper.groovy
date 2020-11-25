@@ -3,12 +3,12 @@ def notification(String buildResult, slackBody  = '') {
     if (buildResult == 'SUCCESS') {
         title_msg += ' was successful\n'
         title_msg += slackBody
-        title_msg += "\ncc <!here>\n"
+        title_msg += '\ncc <!here>\n'
         slackSend color: 'good', message: "${title_msg}"
     } else {
         title_msg += ' was failed\n'
         title_msg += slackBody
-        title_msg += "\ncc <!here>\n"
+        title_msg += '\ncc <!here>\n'
         slackSend color: 'danger', message: "${title_msg}"
     }
 }

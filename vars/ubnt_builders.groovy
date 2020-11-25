@@ -336,7 +336,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             UNVRFCD: [product: 'unifi-nvr4-fcd.alpine', resultpath:'target-unifi-nvr4.alpine', tag_prefix: 'unifi-nvr'],
             UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
             UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr']
-            // UNVRNKFCD: [product: 'unifi-nvr-pro-nk-fcd.alpine', resultpath:'target-unifi-nvr-pro-nk.alpine', tag_prefix: 'unifi-nvr']
+        // UNVRNKFCD: [product: 'unifi-nvr-pro-nk-fcd.alpine', resultpath:'target-unifi-nvr-pro-nk.alpine', tag_prefix: 'unifi-nvr']
         ]
     ]
 
@@ -562,44 +562,44 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 
 def disk_smart_mon_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64'])
+    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
 }
 
 def disk_quota_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64'])
+    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
 }
 
 def analytic_report_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64'])
+    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
 }
 
 def debbox_base_files_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options)
+    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
 }
 
 def cloudkey_apq8053_initramfs_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options)
+    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
 }
 
 def ubnt_archive_keyring_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options)
+    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
 }
 
 def ubnt_zram_swap_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options)
+    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
 }
 
 def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
 
     // stretch/amd64 could not build successfully
-    return debpkg(job_options, ['stretch/arm64'])
+    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
 }
 /*
  * A general package build function
@@ -615,12 +615,12 @@ def debpkg(Map job_options, configs=['all']) {
 
     configs.each { config ->
         def extra = ''
-        // def builder = 'stretch-arm64' // TODO: for future debian dist usage
+        def builder = 'stretch-arm64' // TODO: for future debian dist usage
         def artifact_prefix = config
 
         if (config != 'all') {
-            def (dist, arch) = config.split('/')
-            // builder = "${dist}-${arch}" // TODO: for future debian dist usage
+            def (distribution, arch) = config.split('/')
+            builder = "${distribution}-${arch}" // TODO: for future debian dist usage
             extra = "DEB_TARGET_ARCH=${arch}"
         }
 
@@ -642,8 +642,12 @@ def debpkg(Map job_options, configs=['all']) {
                 def deleteWsPath
                 ws("${m.build_dir}") {
                     deleteWsPath = env.WORKSPACE
-                    def dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
+                    def dockerImage = docker.image("debbox-builder-cross-${builder}:latest")
+
                     if (m.non_cross) {
+                        if (builder != 'stretch-arm64') { // TODO qemu buster builder
+                            return false
+                        }
                         dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
                     }
 
