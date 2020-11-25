@@ -33,7 +33,7 @@ def fw_release_changelog() {
     def nas_domain = ubnt_nas.get_nasdomain()
     def nas_dir = ubnt_nas.get_nasdir()
 
-    def fw_path = "firmware.debbox/tags/${version}/latest"
+    def fw_path = "firmware.debbox/tags/${tag_version}/latest"
     def nas_url = "${nas_domain}/${fw_path}"
     def nas_path = "${nas_dir}/${fw_path}"
 
