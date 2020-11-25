@@ -626,8 +626,8 @@ def debpkg(Map job_options, configs=['all']) {
 
         build_jobs.add([
             node: job_options.node ?: 'fwteam',
-            name: job_options.name + "${builder}",
-            artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
+            name: job_options.name + "-${builder}",
+            artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${builder}",
             dist: job_options.dist ?: 'dist',
             execute_order: 1,
             upload: job_options.upload ?: false,
