@@ -23,7 +23,7 @@ def fw_release_changelog() {
         branch = 'cloudkey-plus.apq8053'
     } else if (product == 'unifi-nvr') {
         product = 'UNVR'
-        branch = 'unifi-nvr4-protect.alpine'
+        branch = 'unifi-nvr-pro-protect.alpine'
     } else {
         return
     }
