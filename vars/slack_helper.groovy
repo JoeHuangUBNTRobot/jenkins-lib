@@ -54,7 +54,7 @@ def fw_release_changelog() {
 
     // cc section
     def cc_msg = 'cc '
-    for (name in cclist.split()) {
+    for (name in cc_list.split()) {
         cc_msg = cc_msg + "<@${name}> "
     }
     cc_msg = cc_msg + '\n'
