@@ -210,8 +210,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                     }
                     dir_cleanup("$m.build_dir") {
                         try {
-                            def dockerImage = docker.image('dio-debfactory-builder:latest')
+                            def dockerImage = docker.image("dio-debfactory-${m.dist}-builder:latest")
                             if (m.non_cross) {
+                                // dockerImage = docker.image('debbox-builder-qemu-${m.dist}-arm64:latest')
                                 dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
                             }
                             dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
