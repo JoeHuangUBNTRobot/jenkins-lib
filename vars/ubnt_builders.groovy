@@ -578,22 +578,22 @@ def analytic_report_builder(String productSeries, Map job_options=[:], Map build
 
 def debbox_base_files_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    return debpkg(job_options, ['stretch/all', 'buster/all'])
 }
 
 def cloudkey_apq8053_initramfs_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    return debpkg(job_options, ['stretch/all', 'buster/all'])
 }
 
 def ubnt_archive_keyring_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    return debpkg(job_options, ['stretch/all', 'buster/all'])
 }
 
 def ubnt_zram_swap_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    return debpkg(job_options, ['stretch/all', 'buster/all'])
 }
 
 def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
@@ -609,19 +609,19 @@ def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_seri
  * dist: path of output dir  (default is "dist")
  *
  */
-def debpkg(Map job_options, configs=['all']) {
+def debpkg(Map job_options, configs=['stretch/all']) {
     def build_jobs = []
 
     verify_required_params('debpkg', job_options, ['name'])
 
     configs.each { config ->
         def extra = ''
-        def builder = 'stretch-arm64' // TODO: for future debian dist usage
         def artifact_prefix = config
+        def (distribution, arch) = config.split('/')
+        def builder = "$distribution-arm64"
 
-        if (config != 'all') {
-            def (distribution, arch) = config.split('/')
-            builder = "${distribution}-${arch}" // TODO: for future debian dist usage
+        if (arch != 'all') {
+            builder = "${distribution}-${arch}"
             extra = "DEB_TARGET_ARCH=${arch}"
         }
 
