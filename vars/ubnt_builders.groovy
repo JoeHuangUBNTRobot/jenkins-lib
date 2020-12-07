@@ -466,8 +466,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
                                     // if bootloader url is changed please also modify the daily build script together
                                     // def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
-                                    def url = "\"${m.bootloader_url}\""
-                                    bash "AWS_PROFILE=default BOOTLOADER=$url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+                                    def cur_bootloader_url = "\"${m.bootloader_url}\""
+                                    bash "AWS_PROFILE=default BOOTLOADER=$cur_bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
                                 }
                                 sh 'cp make.log /root/artifact_dir/'
                                 sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
