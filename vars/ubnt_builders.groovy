@@ -338,6 +338,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
             UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr']
         // UNVRNKFCD: [product: 'unifi-nvr-pro-nk-fcd.alpine', resultpath:'target-unifi-nvr-pro-nk.alpine', tag_prefix: 'unifi-nvr']
+        ],
+        UDM:
+        [
+            UDMPROSE: [product: 'unifi-udm-pro-se.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', additional_store: ['image/udm-image/uImage', 'image/udm-image/vmlinux', 'image/udm-image/vmlinuz-*-ubnt']]
         ]
     ]
 
@@ -365,6 +369,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             additional_store: target_map.additional_store ?: [],
             execute_order: 1,
             artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
+            bootloader_url: job_options.bootloader_url ?: "http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img"
             build_status:false,
             upload: job_options.upload ?: false,
             pre_checkout_steps: { m->
@@ -460,8 +465,9 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             try {
                                 withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
                                     // if bootloader url is changed please also modify the daily build script together
-                                    def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
-                                    bash "AWS_PROFILE=default BOOTLOADER=$bootloader_url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+                                    // def bootloader_url = "\"http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img\""
+                                    def url = "\"${m.bootloader_url}\""
+                                    bash "AWS_PROFILE=default BOOTLOADER=$url make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
                                 }
                                 sh 'cp make.log /root/artifact_dir/'
                                 sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
