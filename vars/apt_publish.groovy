@@ -68,7 +68,7 @@ def call() {
 
     println "upload_path: ${upload_path}, file_path: ${file_path}"
     withCredentials([string(credentialsId: 'FWTEAM_APT_TOKEN', variable: 'token'), string(credentialsId: 'FWTEAM_APT_USER', variable: 'user')]) {
-        res = sh_output("curl -H \"Connection: keep-alive\" -u ${user}:${token} -X PUT -T ${file_path} ${upload_path}")
+        res = sh_output("curl -H \"Connection: keep-alive\" -u ${user}:${token} -X PUT -T ${file_path} \"${upload_path}\"")
         print "\nresponsible: \n${res}"
     }
 }
