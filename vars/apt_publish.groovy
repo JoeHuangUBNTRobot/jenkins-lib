@@ -32,6 +32,7 @@ def call() {
     if (!upload_components.get(upload_component) ||  !upload_repo) {
         println 'no allowed to upload this component !'
     }
+    println "dist: $dist"
     for (i in dist) {
         if (!upload_dist.get(i)) {
             println "no allowed to upload this dist: $i"
