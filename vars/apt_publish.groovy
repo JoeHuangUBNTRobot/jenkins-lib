@@ -33,6 +33,7 @@ def call() {
         println 'no allowed to upload this component !'
     }
     println "dist: $dist"
+    dist = dist.tokenize(',')
     for (i in dist) {
         if (!upload_dist.get(i)) {
             println "no allowed to upload this dist: $i"
