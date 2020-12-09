@@ -369,7 +369,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             additional_store: target_map.additional_store ?: [],
             execute_order: 1,
             artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
-            bootloader_url: job_options.bootloader_url ?: "http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img",
+            bootloader_url: job_options.bootloader_url ?: 'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img',
             build_status:false,
             upload: job_options.upload ?: false,
             pre_checkout_steps: { m->
