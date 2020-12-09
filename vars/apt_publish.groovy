@@ -30,13 +30,13 @@ def call() {
     upload_repo = upload_repos.get(component)
 
     if (!upload_components.get(upload_component) ||  !upload_repo) {
-        println 'no allowed to upload this component !'
+        error 'no allowed to upload this component !'
     }
     println "dist: $dist"
     dist = dist.tokenize(', ')
     for (i in dist) {
         if (!upload_dist.get(i)) {
-            println "no allowed to upload this dist: $i"
+            error "no allowed to upload this dist: $i"
         }
     }
 
@@ -68,8 +68,7 @@ def call() {
 
     println "upload_path: ${upload_path}, file_path: ${file_path}"
     withCredentials([string(credentialsId: 'FWTEAM_APT_TOKEN', variable: 'token'), string(credentialsId: 'FWTEAM_APT_USER', variable: 'user')]) {
-        print "user: $user, token: $token\n"
-    // res = sh_output("curl -H \"Connection: keep-alive\" -u ${user}:${token} -X PUT -T ${file_path} ${upload_path}")
-    // print "\nresponsible: \n${res}"
+        res = sh_output("curl -H \"Connection: keep-alive\" -u ${user}:${token} -X PUT -T ${file_path} ${upload_path}")
+        print "\nresponsible: \n${res}"
     }
 }
