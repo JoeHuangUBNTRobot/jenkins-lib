@@ -50,7 +50,7 @@ def call() {
     def props = [
         'deb.component': upload_component,
         'deb.distribution': dist,
-        'deb.arch': arch
+        'deb.architecture': arch
     ]
     def apt_props = ''
     props.each { k, v->
