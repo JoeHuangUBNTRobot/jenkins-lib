@@ -31,7 +31,7 @@ def fw_release_changelog() {
         return
     }
     def qa_msg = ''
-    for (name in qa_list.split()) {
+    for (name in qa_list.split("\\r?\\n")) {
         qa_msg = qa_msg + "<@${name}> "
     }
     qa_msg = qa_msg + '\n'
@@ -61,7 +61,7 @@ def fw_release_changelog() {
 
     // cc section
     def cc_msg = 'cc '
-    for (name in cc_list.split()) {
+    for (name in cc_list.split("\\r?\\n")) {
         cc_msg = cc_msg + "<@${name}> "
     }
     cc_msg = cc_msg + '\n'
