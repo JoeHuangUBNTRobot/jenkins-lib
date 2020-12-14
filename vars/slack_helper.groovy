@@ -17,6 +17,7 @@ def fw_release_changelog() {
     def pkg_list = ['unifi', 'unifi-core', 'unifi-protect', 'ulp-go', 'ulcmd']
     def tag_version = env.TAG_VERSION
     def cc_list = env.CCLIST
+    def qa_list = env.QALIST
     def changelog_url = env.Changelog
     def tokenCredentialId = env.Token
     (product, tag) = tag_version.split('/')
@@ -29,6 +30,12 @@ def fw_release_changelog() {
     } else {
         return
     }
+    def qa_msg = ''
+    for (name in qa_list.split()) {
+        qa_msg = qa_msg + "<@${name}> "
+    }
+    qa_msg = qa_msg + '\n'
+
     def title_msg = "${product} ${tag} has been tagged\n"
     def changelog_msg = "Changelog: ${changelog_url}\n"
 
@@ -59,5 +66,5 @@ def fw_release_changelog() {
     }
     cc_msg = cc_msg + '\n'
 
-    slackSend(color: '#199515', message: "${title_msg} ${changelog_msg} ${codeblock_msg} ${end_msg} ${cc_msg}", tokenCredentialId: tokenCredentialId)
+    slackSend(color: '#199515', message: "${qa_msg} ${title_msg} ${changelog_msg} ${codeblock_msg} ${end_msg} ${cc_msg}", tokenCredentialId: tokenCredentialId)
 }
