@@ -768,12 +768,14 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
         build_jobs.add([
             node: job_options.node ?: 'fwteam',
             name: "$model$hw_ver",
+            model: model,
+            hw_ver: hw_ver,
             artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
             dist: 'output',
             execute_order: 1,
             upload: job_options.upload ?: false,
             pre_checkout_steps: { m->
-                m.artifact_prefix = "$model-$hw_ver"
+                m.artifact_prefix = "${m.model}-${m.hw_ver}"
                 m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
             },
             build_steps: { m ->
@@ -829,7 +831,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                         m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
                         print m.upload_info
                         try {
-                            bash "./release.sh $model $hw_ver 2>&1 | tee make.log"
+                            bash "./release.sh ${m.model} ${m.hw_ver} 2>&1 | tee make.log"
                         }
                         catch (Exception e) {
                             throw e
