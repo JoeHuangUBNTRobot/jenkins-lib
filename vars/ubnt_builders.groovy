@@ -746,8 +746,8 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
 
     verify_required_params('amaz_alpinev2_boot_builder', job_options, ['name'])
 
-    // amaz_alpinev2_boot_config = [ubnt_nas:'5', ubnt_nas_pro:'2', ubnt_nas_ai:'3', ubnt_unvr_all:'1']
-    amaz_alpinev2_boot_config = [ubnt_unvr_all:'1']
+    // amaz_alpinev2_boot_config = ['ubnt_nas-5', 'ubnt_nas_pro-2', 'ubnt_nas_ai-3', 'ubnt_unvr_all-1']
+    amaz_alpinev2_boot_config = ['ubnt_unvr_all-1']
 
     if (build_config.size() > 0) {
         if (build_config.containsKey(build_target)) {
@@ -763,7 +763,8 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
         }
     }
     echo "build $build_target $config"
-    config.each { model, hw_ver->
+    config.each { entry ->
+        (model, hw_ver) = entry.split('-')
         build_jobs.add([
             node: job_options.node ?: 'fwteam',
             name: "$model$hw_ver",
