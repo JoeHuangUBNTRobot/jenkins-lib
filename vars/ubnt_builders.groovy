@@ -766,7 +766,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
     config.each { model, hw_ver->
         build_jobs.add([
             node: job_options.node ?: 'fwteam',
-            name: model,
+            name: "$model$hw_ver",
             artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
             dist: 'output',
             execute_order: 1,
