@@ -436,6 +436,9 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 }
                                 println "tag build: istag: $is_tag, is_atag:$is_atag"
                                 git_args.local_branch = ref
+                            } else if (is_pr) {
+                                // use change branch as ref
+                                ref = env.CHANGE_BRANCH
                             } else {
                                 ref = git_helper.current_branch()
                                 if (!ref || ref == 'HEAD') {
