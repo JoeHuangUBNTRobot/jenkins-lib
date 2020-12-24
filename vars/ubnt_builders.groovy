@@ -395,7 +395,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         } else {
                             dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
                         }
-                        def docker_args = get_docker_args(m.docker_artifact_path) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro" + " -v $HOME/.ssh/id_rsa:/root/.ssh/id_rsa:ro"
+                        def docker_args = get_docker_args(m.docker_artifact_path) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
                         dockerImage.inside(docker_args) {
                             /*
                              * tag build var:
