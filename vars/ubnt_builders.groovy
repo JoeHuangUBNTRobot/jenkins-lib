@@ -341,8 +341,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
         ],
         UDM:
         [
-            UDMPROSE: [product: 'unifi-udm-pro-se.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', bootloader_url:'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_udm_pro_se-2/boot.img' ,additional_store: ['image/udm-image/uImage', 'image/udm-image/vmlinux', 'image/udm-image/vmlinuz-*-ubnt']],
-            UDR: [product: 'unifi-dream-router.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udm', bootloader_url:'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_udm_pro_se-2/boot.img', additional_store: ['image/mtk7622-fwimage/uImage']]
+            UDMPROSE: [product: 'unifi-udm-pro-se.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', bootloader_url:'' ,additional_store: ['image/udm-image/uImage', 'image/udm-image/vmlinux', 'image/udm-image/vmlinuz-*-ubnt']],
+            UDR: [product: 'unifi-dream-router.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udm', bootloader_url:'', additional_store: ['image/mtk7622-fwimage/uImage']]
         ]
     ]
 
