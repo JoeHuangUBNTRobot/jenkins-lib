@@ -328,21 +328,21 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
         ],
         UNIFICORE:
         [
-            UCKG2: [product: 'cloudkey-g2.apq8053', resultpath: 'target-cloudkey-g2.apq8053', tag_prefix: 'unifi-cloudkey'],
-            UCKP: [product: 'cloudkey-plus.apq8053', resultpath: 'target-cloudkey-plus.apq8053', tag_prefix: 'unifi-cloudkey'],
-            UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine', tag_prefix: 'unifi-nvr'],
-            UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
-            UNVRAI: [product: 'unifi-nvr-ai-protect.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr'],
+            UCKG2: [product: 'cloudkey-g2.apq8053', resultpath: 'target-cloudkey-g2.apq8053', tag_prefix: 'unifi-cloudkey', bootloader_url: ''],
+            UCKP: [product: 'cloudkey-plus.apq8053', resultpath: 'target-cloudkey-plus.apq8053', tag_prefix: 'unifi-cloudkey', bootloader_url: ''],
+            UNVR: [product: 'unifi-nvr4-protect.alpine', resultpath:'target-unifi-nvr4.alpine', tag_prefix: 'unifi-nvr', bootloader_url: 'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img'],
+            UNVRPRO: [product: 'unifi-nvr-pro-protect.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr', bootloader_url: 'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img'],
+            UNVRAI: [product: 'unifi-nvr-ai-protect.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr', bootloader_url: 'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img'],
             // UNVRNK: [product: 'unifi-nvr-pro-nk.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
-            UNVRFCD: [product: 'unifi-nvr4-fcd.alpine', resultpath:'target-unifi-nvr4.alpine', tag_prefix: 'unifi-nvr'],
-            UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr'],
-            UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr']
+            UNVRFCD: [product: 'unifi-nvr4-fcd.alpine', resultpath:'target-unifi-nvr4.alpine', tag_prefix: 'unifi-nvr', bootloader_url: 'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img'],
+            UNVRPROFCD: [product: 'unifi-nvr-pro-fcd.alpine', resultpath:'target-unifi-nvr-pro.alpine', tag_prefix: 'unifi-nvr', bootloader_url: 'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img'],
+            UNVRAIFCD: [product: 'unifi-nvr-ai-fcd.alpine', resultpath:'target-unifi-nvr-ai.alpine', tag_prefix: 'unifi-nvr', bootloader_url: 'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img']
         // UNVRNKFCD: [product: 'unifi-nvr-pro-nk-fcd.alpine', resultpath:'target-unifi-nvr-pro-nk.alpine', tag_prefix: 'unifi-nvr']
         ],
         UDM:
         [
-            UDMPROSE: [product: 'unifi-udm-pro-se.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', additional_store: ['image/udm-image/uImage', 'image/udm-image/vmlinux', 'image/udm-image/vmlinuz-*-ubnt']],
-            UDR: [product: 'unifi-dream-router.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udm', additional_store: ['image/mtk7622-fwimage/uImage']]
+            UDMPROSE: [product: 'unifi-udm-pro-se.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', bootloader_url:'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_udm_pro_se-2/boot.img' ,additional_store: ['image/udm-image/uImage', 'image/udm-image/vmlinux', 'image/udm-image/vmlinuz-*-ubnt']],
+            UDR: [product: 'unifi-dream-router.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udm', bootloader_url:'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_udm_pro_se-2/boot.img', additional_store: ['image/mtk7622-fwimage/uImage']]
         ]
     ]
 
@@ -370,7 +370,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             additional_store: target_map.additional_store ?: [],
             execute_order: 1,
             artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
-            bootloader_url: job_options.bootloader_url ?: 'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img',
+            bootloader_url: target_map.bootloader_url ?: 'http://tpe-judo.rad.ubnt.com/build/amaz-alpinev2-boot/heads/master/latest/ubnt_unvr_all-1/boot.img',
             build_status:false,
             upload: job_options.upload ?: false,
             pre_checkout_steps: { m->
