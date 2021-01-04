@@ -891,7 +891,7 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
         node: job_options.node ?: 'fwteam',
         name: "mt7622-boot",
         artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
-        dist: 'output',
+        dist: 'u-boot-mtk.bin',
         execute_order: 1,
         upload: job_options.upload ?: false,
         pre_checkout_steps: { m->
@@ -951,15 +951,16 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
                     m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
                     print m.upload_info
                     try {
+                        bash "ln -f config-udr .config"
                         bash "MENUCONFIG_SAVE_IMMEDIATELY=1 make menuconfig 2>&1 | tee make.log"
-                        bash "make 2>&1 | tee make.log"
+                        bash "make -j8 2>&1 | tee make.log"
                     }
                     catch (Exception e) {
                         throw e
                     }
                     finally {
                         sh 'chmod -R 777 .'
-                        sh "cp -rT ${m.dist} /root/artifact_dir || true"
+                        sh "cp ${m.dist} /root/artifact_dir || true"
                         sh 'mv make.log /root/artifact_dir'
                         sh 'rm -rf /root/artifact_dir/input || true'
                         dir_cleanup("${deleteWsPath}") {
