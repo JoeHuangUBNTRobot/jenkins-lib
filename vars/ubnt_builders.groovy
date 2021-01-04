@@ -66,6 +66,11 @@ def get_job_options(String project) {
             node: 'fwteam',
             upload: true
         ],
+        mt7622_boot_builder:[
+            name: 'mt7622_boot',
+            node: 'fwteam',
+            upload: true
+        ],
         preload_image_builder:[
             name: 'preload_image',
             node: 'fwteam',
@@ -872,6 +877,118 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
             }
         ])
     }
+
+    return build_jobs
+}
+
+def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_config=[:]) {
+    def build_jobs = []
+    def config = [:]
+
+    verify_required_params('mt7622_boot_builder', job_options, ['name'])
+
+    build_jobs.add([
+        node: job_options.node ?: 'fwteam',
+        name: "mt7622-boot",
+        artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
+        dist: 'output',
+        execute_order: 1,
+        upload: job_options.upload ?: false,
+        pre_checkout_steps: { m->
+            m.artifact_prefix = m.name
+            m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
+        },
+        build_steps: { m ->
+            sh "mkdir -p ${m.artifact_dir}/${m.artifact_prefix}"
+            m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/${m.artifact_prefix}")
+
+            def deleteWsPath
+            ws("${m.build_dir}") {
+                deleteWsPath = env.WORKSPACE
+                def dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
+
+                dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
+                    sh 'pwd'
+                    def co_map = checkout scm
+                    sh 'ls -alhi'
+                    def url = co_map.GIT_URL
+                    def git_args = git_helper.split_url(url)
+                    def repository = git_args.repository
+                    echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
+                    git_args.revision = git_helper.sha()
+                    git_args.rev_num = git_helper.rev()
+
+                    def is_pr = env.getProperty('CHANGE_ID') != null
+                    def is_atag = env.getProperty('TAG_NAME') != null
+                    def is_tag = env.getProperty('TAG_NAME') != null
+                    if (is_pr && is_atag) {
+                        error 'Unexpected environment, cannot be both PR and TAG'
+                    }
+                    def ref
+                    if (is_atag) {
+                        ref = TAG_NAME
+                        try {
+                            git_helper.verify_is_atag(ref)
+                        } catch (all) {
+                            println "catch error: $all"
+                            is_atag = false
+                        }
+                        println "tag build: istag: $is_tag, is_atag:$is_atag"
+                        git_args.local_branch = ref
+                    } else {
+                        ref = git_helper.current_branch()
+                        if (!ref || ref == 'HEAD') {
+                            ref = "origin/${BRANCH_NAME}"
+                        } else {
+                            git_args.local_branch = ref
+                        }
+                    }
+                    git_args.is_pr = is_pr
+                    git_args.is_tag = is_tag
+                    git_args.is_atag = is_atag
+                    git_args.ref = ref
+                    m['git_args'] = git_args.clone()
+                    m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
+                    print m.upload_info
+                    try {
+                        bash "MENUCONFIG_SAVE_IMMEDIATELY=1 make menuconfig 2>&1 | tee make.log"
+                        bash "make 2>&1 | tee make.log"
+                    }
+                    catch (Exception e) {
+                        throw e
+                    }
+                    finally {
+                        sh 'chmod -R 777 .'
+                        sh "cp -rT ${m.dist} /root/artifact_dir || true"
+                        sh 'mv make.log /root/artifact_dir'
+                        sh 'rm -rf /root/artifact_dir/input || true'
+                        dir_cleanup("${deleteWsPath}") {
+                            echo "cleanup ws ${deleteWsPath}"
+                            deleteDir()
+                        }
+                    }
+                }
+            }
+
+            return true
+        },
+        archive_steps: { m ->
+            stage("Artifact ${m.name}") {
+                if (fileExists("$m.artifact_dir/${m.artifact_prefix}/make.log")) {
+                    archiveArtifacts artifacts: "${m.artifact_dir}/${m.artifact_prefix}/**"
+                    if (m.containsKey('upload_info')) {
+                        def upload_path = m.upload_info.path.join('/')
+                        def latest_path = m.upload_info.latest_path.join('/')
+                        println "upload: $upload_path , artifact_path: ${m.artifact_dir}/${m.artifact_prefix}, latest_path: $latest_path"
+                        if (m.upload) {
+                            ubnt_nas.upload("${m.artifact_dir}/${m.artifact_prefix}", upload_path, latest_path)
+                        }
+                    }
+                }
+            }
+        }
+    ])
+
 
     return build_jobs
 }
