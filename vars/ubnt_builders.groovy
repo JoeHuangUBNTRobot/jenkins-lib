@@ -330,7 +330,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
         NX:
         [
             UNX: [product: 'unifi-nx.nvidia', resultpath: 'target-unifi-nx.nvidia', additional_store: ['image/unx-image/boot.img', 'image/unx-image/rootfs.img', 'image/unx-image/jetson.dtb']],
-            UNXTHERMAL: [product: 'unifi-nx-thermal.nvidia', resultpath: 'target-unifi-nx.nvidia', additional_store: ['image/unx-image/boot.img', 'image/unx-image/rootfs.img', 'image/unx-image/jetson.dtb']]
+            UNXTHERMAL: [product: 'unifi-nx-thermal.nvidia', resultpath: 'target-unifi-nx-thermal.nvidia', additional_store: ['image/unx-image/boot.img', 'image/unx-image/rootfs.img', 'image/unx-image/jetson.dtb']]
         ],
         UNIFICORE:
         [
