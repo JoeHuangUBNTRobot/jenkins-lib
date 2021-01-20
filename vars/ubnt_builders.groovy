@@ -79,7 +79,7 @@ def get_job_options(String project) {
         ustd_checker:[
             name: 'ustd',
             node: 'fwteam',
-            upload: true
+            upload: false
         ]
     ]
 
@@ -1084,10 +1084,6 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
         non_cross: job_options.non_cross ?: false,
         pre_checkout_steps: { m->
             m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
-            m.upload_info = [
-                path: ["${m.name}", 'stretch', 'arm64', "${m.build_dir}"],
-                latest_path: ["${m.name}", 'stretch','arm64', 'latest']
-            ]
         },
         build_steps: { m ->
             sh "mkdir -p ${m.artifact_dir}/stretch/arm64"
@@ -1143,17 +1139,7 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
         },
         archive_steps: { m ->
             stage("Artifact ${m.name}") {
-                if (fileExists("${m.artifact_dir}/make.log")) {
-                    if (m.containsKey('upload_info')) {
-                        def upload_path = m.upload_info.path.join('/')
-                        def latest_path = m.upload_info.latest_path.join('/')
-                        println "upload: $upload_path ,artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
-                        if (m.upload) {
-                            ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
-                        }
-                    }
-                    archiveArtifacts artifacts: "${m.artifact_dir}/**"
-                }
+                archiveArtifacts artifacts: "${m.artifact_dir}/**"
             }
         }
     ])
