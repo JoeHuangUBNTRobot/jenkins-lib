@@ -14,7 +14,7 @@ def notification(String buildResult, slackBody  = '') {
 }
 
 def fw_release_changelog() {
-    def pkg_list = ['unifi', 'unifi-core', 'unifi-protect', 'ulp-go', 'ulcmd']
+    def pkg_list = ['unifi', 'unifi-core', 'unifi-protect', 'ulp-go', 'ulcmd', 'unvr-pro-lcm-fw']
     def tag_version = env.TAG_VERSION
     def cc_list = env.CCLIST
     def qa_list = env.QALIST
