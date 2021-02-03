@@ -125,7 +125,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
             build_steps: { m->
                 sh 'export'
                 def buildPackages = []
-                m.pkginfo = [:]
                 stage ("checkout $m.name") {
                     m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
                     sh "mkdir -p ${m.artifact_dir}"
@@ -252,16 +251,14 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                 }
             },
             archive_steps: { m->
-                if (m.pkginfo.size() > 0) {
-                    stage("Artifact ${m.name}") {
-                        archiveArtifacts artifacts: "${m.artifact_dir}/*"
-                    }
-                    stage('Upload to server') {
-                        if (m.upload && m.containsKey('upload_info')) {
-                            def upload_prefix = m.upload_info.path.join('/')
-                            def latest_prefix = m.upload_info.latest_path.join('/')
-                            ubnt_nas.upload(m.absolute_artifact_dir, upload_prefix, latest_prefix, true)
-                        }
+                stage("Artifact ${m.name}") {
+                    archiveArtifacts artifacts: "${m.artifact_dir}/*"
+                }
+                stage('Upload to server') {
+                    if (m.upload && m.containsKey('upload_info')) {
+                        def upload_prefix = m.upload_info.path.join('/')
+                        def latest_prefix = m.upload_info.latest_path.join('/')
+                        ubnt_nas.upload(m.absolute_artifact_dir, upload_prefix, latest_prefix, true)
                     }
                 }
             }
