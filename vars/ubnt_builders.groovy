@@ -114,7 +114,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
             node: job_options.node ?: 'fwteam',
             name: 'debfactory',
             dist: "$build_dist",
-            resultpath: "build/${build_dist}-${arch}",
+            resultpath: "build/dist",
             execute_order: 1,
             artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
             build_record: job_options.build_record ?: false,
@@ -231,19 +231,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 }
                                 println "build_failed pkg: ${m.build_failed}"
 
-                                buildPackages.each { pkg ->
-                                    sh_output("find ${m.resultpath} -name ${pkg}_*.deb -printf \"%f\n\"").tokenize('\n').findResults {
-                                        println it
-                                        def list = it.replaceAll('.deb', '').tokenize('_')
-                                        if (list.size() == 3) {
-                                            m.pkginfo[it] = [ name: list[0].replaceAll('-dev', ''), hash: list[1], arch: list[2] ]
-                                        }
-                                    }
-                                }
-                                m.pkginfo.each { pkgname, pkgattr ->
-                                    println "name: ${pkgattr.name} hash: ${pkgattr.hash} arch: ${pkgattr.arch}"
-                                    sh "find ${m.resultpath} -maxdepth 1 -type f -name ${pkgattr.name}* | xargs -I {} cp {} /root/artifact_dir"
-                                }
+                                sh "rsync -av ${m.resultpath}/ /root/artifact_dir/"
                                 sh 'make distclean 2>&1'
                             }
                         }
@@ -270,33 +258,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                     }
                     stage('Upload to server') {
                         if (m.upload && m.containsKey('upload_info')) {
-                            def tmpdir = 'tmppkg'
-                            sh "mkdir -p $tmpdir"
-                            tmpdir = sh_output("readlink -f ${tmpdir}")
-                            m.pkginfo.each { pkgname, pkgattr->
-                                def upload_prefix = m.upload_info.path.join('/')
-                                def latest_prefix = m.upload_info.latest_path.join('/')
-                                sh "ls -alhi ${m.absolute_artifact_dir}/"
-                                sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name ${pkgattr.name}_* | xargs -I {} cp {} ${tmpdir}"
-                                sh "find ${m.absolute_artifact_dir}/ -maxdepth 1 -name ${pkgattr.name}-* | xargs -I {} cp {} ${tmpdir}"
-                                def src_path = "$tmpdir/${pkgattr.name}*"
-                                def dst_path = "${upload_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}/${pkgattr.hash}/"
-                                def latest_path = "${latest_prefix}/${pkgattr.name}/${m.dist}/${pkgattr.arch}"
-                                ubnt_nas.upload(src_path, dst_path, latest_path, true)
-                                if (m.build_record) {
-                                    def ref_path = m.upload_info.ref_path.join('/')
-                                    nas_dir = ubnt_nas.get_nasdir()
-                                    ref_path = "${nas_dir}/${ref_path}"
-                                    dst_path = "${nas_dir}/${dst_path}"
-                                    def relative_path = sh_output("realpath --relative-to=${ref_path} ${dst_path}")
-                                    sh_output("find ${dst_path} -name ${pkgattr.name}*.deb -printf \"%f\n\"").tokenize('\n').findResults {
-                                        def update_pkg_name = it.split('_')[0]
-                                        sh "echo ${update_pkg_name} ${relative_path} >> ${ref_path}/.pkgupdate"
-                                    }
-                                }
-                                sh "rm -f $tmpdir/*"
-                            }
-                            sh "rm -rf $tmpdir"
+                            def upload_prefix = m.upload_info.path.join('/')
+                            def latest_prefix = m.upload_info.latest_path.join('/')
+                            ubnt_nas.upload(m.absolute_artifact_dir, upload_prefix, latest_prefix, true)
                         }
                     }
                 }
