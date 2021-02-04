@@ -257,15 +257,16 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                     return
                 }
                 stage("Artifact ${m.name}") {
-                    archiveArtifacts artifacts: "${m.artifact_dir}/*"
+                    archiveArtifacts artifacts: "${m.artifact_dir}/**"
                 }
                 stage('Upload to server') {
                     if (m.upload && m.containsKey('upload_info')) {
                         def upload_prefix = m.upload_info.path.join('/')
                         def latest_prefix = m.upload_info.latest_path.join('/')
-                        ubnt_nas.upload(m.absolute_artifact_dir, upload_prefix, latest_prefix, true)
+                        ubnt_nas.upload(m.absolute_artifact_dir + '/*' , upload_prefix, latest_prefix, true)
                         if (m.build_record) {
                             def ref_path = m.upload_info.ref_path.join('/')
+                            ref_path = "${ubnt_nas.get_nasdir()}/${ref_path}"
                             sh "cat ${m.absolute_artifact_dir}/.pkgupdate >> ${ref_path}/.pkgupdate"
                         }
                     }
