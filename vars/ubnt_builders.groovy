@@ -201,6 +201,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 buildPackages << it
                             }
                         }
+                        m.buildPackages = buildPackages
                         println "Packages to be built: $buildPackages"
 
                         sh 'ls -lahi'
@@ -230,6 +231,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 }
                                 println "build_failed pkg: ${m.build_failed}"
 
+                                sh "./pkg-arrange.py ${m.resultpath}/"
                                 sh "rsync -av ${m.resultpath}/ /root/artifact_dir/"
                                 sh 'make distclean 2>&1'
                             }
@@ -251,6 +253,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                 }
             },
             archive_steps: { m->
+                if (m.buildPackages.size() == 0) {
+                    return
+                }
                 stage("Artifact ${m.name}") {
                     archiveArtifacts artifacts: "${m.artifact_dir}/*"
                 }
