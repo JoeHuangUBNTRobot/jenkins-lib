@@ -125,6 +125,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
             build_steps: { m->
                 sh 'export'
                 def buildPackages = []
+                def collectPackages = []
                 stage ("checkout $m.name") {
                     m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
                     sh "mkdir -p ${m.artifact_dir}"
@@ -196,9 +197,15 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                             sh_output("./pkg-tools.py -nc -lf -rg $last_successful_commit").tokenize('\n').each {
                                 buildPackages << it
                             }
+                            sh_output("./pkg-tools.py -nc -rg $last_successful_commit").tokenize('\n').each {
+                                collectPackages << it
+                            }
                         } else {
                             sh_output("./pkg-tools.py -lf -rg $last_successful_commit").tokenize('\n').each {
                                 buildPackages << it
+                            }
+                            sh_output("./pkg-tools.py -rg $last_successful_commit").tokenize('\n').each {
+                                collectPackages << it
                             }
                         }
                         m.buildPackages = buildPackages
@@ -232,7 +239,10 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 println "build_failed pkg: ${m.build_failed}"
 
                                 sh "./pkg-arrange.py -b ${m.upload_info.job_path} ${m.resultpath}/"
-                                sh "rsync -av ${m.resultpath}/ /root/artifact_dir/"
+                                collectPackages.each { pkg ->
+                                    sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
+                                }
+                                sh "cp ${m.resultpath}/.pkgupdate /root/artifact_dir/"
                                 sh 'make distclean 2>&1'
                             }
                         }
