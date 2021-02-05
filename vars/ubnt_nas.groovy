@@ -26,6 +26,7 @@ def generate_buildinfo(Map git_args) {
     output.path = ref_path + output_dir
     output.latest_path = latest_path
     output.ref_path = ref_path
+    output.job_path = output_dir
     return output
 }
 

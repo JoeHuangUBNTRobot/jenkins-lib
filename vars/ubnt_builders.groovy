@@ -231,7 +231,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 }
                                 println "build_failed pkg: ${m.build_failed}"
 
-                                sh "./pkg-arrange.py ${m.resultpath}/"
+                                sh "./pkg-arrange.py -b ${m.upload_info.job_path} ${m.resultpath}/"
                                 sh "rsync -av ${m.resultpath}/ /root/artifact_dir/"
                                 sh 'make distclean 2>&1'
                             }
