@@ -330,8 +330,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
         ],
         UDM:
         [
-            UDMPROSE: [product: 'unifi-udm-pro-se.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', bootloader_url:'' ,additional_store: ['image/udm-image/uImage', 'image/udm-image/vmlinux', 'image/udm-image/vmlinuz-*-ubnt']],
-            UDR: [product: 'unifi-dream-router.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udm', bootloader_url:'', additional_store: ['image/mtk7622-fwimage/uImage']]
+            UDMPROSE: [product: 'unifi-udm-pro-se-controller.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', additional_store: ['image/dream-image/uImage', 'image/dream-image/vmlinux', 'image/dream-image/vmlinuz-*-ui-alpine'], bootloader_url: "False"],
+            UDMPROSEFCD: [product: 'unifi-udm-pro-se-fcd.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', additional_store: ['image/dream-image/uImage', 'image/dream-image/vmlinux', 'image/dream-image/vmlinuz-*-ui-alpine'], bootloader_url: "False"],
+            UDR: [product: 'unifi-dream-router-controller.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udm', additional_store: ['image/mtk7622-fwimage/uImage']],
+            UDRFCD: [product: 'unifi-dream-router-fcd.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udm', additional_store: ['image/mtk7622-fwimage/uImage']]
         ]
     ]
 
@@ -468,7 +470,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 if (productSeries == 'UNVR' || name.contains('UNVR')) {
                                     sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
                                     sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
-                                    sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-*-ubnt /root/artifact_dir/"
+                                    sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-*-ui-alpine /root/artifact_dir/"
                                 }
                                 m.additional_store.each { additional_file ->
                                     sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
