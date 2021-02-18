@@ -470,7 +470,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 if (productSeries == 'UNVR' || name.contains('UNVR')) {
                                     sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
                                     sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
-                                    sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-*-ui-alpine /root/artifact_dir/"
+                                    sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-* /root/artifact_dir/"
                                 }
                                 m.additional_store.each { additional_file ->
                                     sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
