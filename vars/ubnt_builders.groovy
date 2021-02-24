@@ -1083,7 +1083,7 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
                 stage('pylint check error') {
                     def dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
                     dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
-                        sh 'apt-get update && apt-get install python3-systemd'
+                        sh 'apt-get update && apt-get install python3-systemd python3-cryptography -y'
                         sh 'pylint3 -E ustd/*.py ustd/*/*.py'
                     }
                 }
