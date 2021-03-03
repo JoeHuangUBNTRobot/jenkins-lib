@@ -6,7 +6,7 @@ def verify_is_atag(ref) {
     }
 }
 def sha(ref='HEAD') {
-    return sh_output("git rev-parse ${ref}")
+    return sh_output("git rev-parse ${ref}^{commit}")
 }
 
 def short_sha(ref='HEAD') {

@@ -38,7 +38,7 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
                 }
 
                 def inherit_job_map = [:]
-                def inheritlist = ['upload_info', 'upload', 'is_release', 'docker_artifact_path']
+                def inheritlist = ['upload_info', 'upload', 'is_release', 'docker_artifact_path', 'git_args']
                 for (build_job in build_jobs) {
                     if (parallel_jobs[build_job.name].build_job.execute_order == curr_execute_order) {
                         def curr_job = parallel_jobs[build_job.name].build_job

@@ -4,20 +4,24 @@ def generate_buildinfo(Map git_args) {
     def output = [:]
     println git_args
     def ref_path = [] + git_args.repository
+    def dir_name = 'unknown'
     def latest_path = [] + git_args.repository
     def ref = git_args.ref
     def ref_sha = git_helper.sha(ref)
 
     if (git_args.is_tag) {
-        ref_path = ref_path + 'tags' + ref
+        dir_name = 'tags'
+        ref_path = ref_path + dir_name + ref
         latest_path = latest_path + 'tags' + ref + 'latest'
     } else if (git_args.is_pr) {
-        ref_path = ref_path + 'prs' + "PR-${env.CHANGE_ID}"
-        latest_path = latest_path + 'prs' + "PR-${env.CHANGE_ID}" + 'latest'
+        dir_name = 'prs'
+        ref_path = ref_path + dir_name + "PR-${env.CHANGE_ID}"
+        latest_path = latest_path + dir_name + "PR-${env.CHANGE_ID}" + 'latest'
     } else {
         def branch = ref.replaceAll('^origin/', '')
-        ref_path = ref_path + 'heads' + branch
-        latest_path = latest_path + 'heads' + branch + 'latest'
+        dir_name = 'heads'
+        ref_path = ref_path + dir_name + branch
+        latest_path = latest_path + dir_name + branch + 'latest'
     }
 
     println "PATH: ${ref_path.join('/')}"
@@ -27,6 +31,7 @@ def generate_buildinfo(Map git_args) {
     output.latest_path = latest_path
     output.ref_path = ref_path
     output.job_path = output_dir
+    output.dir_name = dir_name
     return output
 }
 

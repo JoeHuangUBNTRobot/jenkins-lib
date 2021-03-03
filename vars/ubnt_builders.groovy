@@ -430,13 +430,13 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             } else if (is_pr) {
                                 // use change branch as ref
                                 ref = "origin/${env.CHANGE_BRANCH}"
+                                git_args.local_branch = "PR-${env.CHANGE_ID}"
                             } else {
                                 ref = git_helper.current_branch()
                                 if (!ref || ref == 'HEAD') {
                                     ref = "origin/${BRANCH_NAME}"
-                                } else {
-                                    git_args.local_branch = ref
                                 }
+                                git_args.local_branch = ref
                             }
                             // decide release build logic
                             def is_release = false
@@ -553,7 +553,27 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             json = "\'{\"parameter\": [{\"name\":\"url\", \"value\":\"${url}\"}, {\"name\":\"date\", \"value\":\"${build_date}\"}, {\"name\":\"model\", \"value\":\"UNVR-Pro\"}, {\"name\":\"product\", \"value\":\"unvr\"}]}\'"
                             sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com/job/UNVR-Pro-FW-CI-test/build --data-urlencode json=$json --user unashacker:$jobtoken"
                         }
+                    }
+
+                    if (name == 'UDMPROSE') {
+                        withCredentials([string(
+                            credentialsId: 'IEV_JENKINS_TOKEN',
+                            variable:'jobtoken')]) {
+                            def HOST="iev-jenkins-old.rad.ubnt.com:8082"
+                            def JOB="Udm_FW_Dispatcher"
+                            def job_info = m.upload_info.path.join('_')
+                            def fw_name = "${m.git_args.local_branch}.${m.git_args.rev_num}"
+                            def data = "BRANCH=${m.git_args.local_branch}" +
+                                "&FW_NAME=${fw_name}" +
+                                "&FW_DIR=${m.upload_info.dir_name}" +
+                                "&BUILD_TYPE=${target_map.product}" +
+                                "&FW_VERSION=${job_info}" +
+                                "&FW_URL=${url}" +
+                                "&FW_COMMIT=${m.git_args.revision}"
+                            print data
+                            sh "curl -k -d \"${data}\" \"http://${HOST}/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
                         }
+                    }
                 }
             }
         ])
