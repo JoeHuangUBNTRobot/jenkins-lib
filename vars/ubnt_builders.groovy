@@ -189,7 +189,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                         if (env.commitHash && !env.commitHash.isEmpty()) {
                             last_successful_commit = env.commitHash
                         } else if (!last_successful_commit) {
-                            last_successful_commit = "HEAD~10"
+                            last_successful_commit = "HEAD~"
                         }
                         print last_successful_commit
 
