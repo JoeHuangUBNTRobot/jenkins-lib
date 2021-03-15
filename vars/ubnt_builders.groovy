@@ -237,11 +237,14 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 }
                                 println "build_failed pkg: ${m.build_failed}"
 
-                                sh "./pkg-arrange.py -b ${m.upload_info.job_path} ${m.resultpath}/"
+                                def upload_prefix = m.upload_info.path.join('/')
+                                sh "mkdir -p /root/artifact_dir/.makefile"
+                                sh "./pkg-arrange.py -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.resultpath}/"
                                 collectPackages.each { pkg ->
                                     sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
+                                    sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/_makefile/${pkg}.mk /root/artifact_dir/.makefile"
                                 }
-                                sh "cp ${m.resultpath}/.pkgupdate /root/artifact_dir/"
+                                // Intentionally use .makefile to avoid uploading to nas job dir
                                 sh 'make distclean 2>&1'
                             }
                         }
@@ -276,7 +279,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                         if (m.build_record) {
                             def ref_path = m.upload_info.ref_path.join('/')
                             ref_path = "${ubnt_nas.get_nasdir()}/${ref_path}"
-                            sh "cat ${m.absolute_artifact_dir}/.pkgupdate >> ${ref_path}/.pkgupdate"
+                            sh "rsync -av ${m.absolute_artifact_dir}/.makefile/ ${ref_path}/.makefile/"
                         }
                     }
                 }
