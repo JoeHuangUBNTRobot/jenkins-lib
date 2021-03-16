@@ -238,8 +238,10 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 println "build_failed pkg: ${m.build_failed}"
 
                                 def upload_prefix = m.upload_info.path.join('/')
+
                                 sh "mkdir -p /root/artifact_dir/.makefile"
-                                sh "./pkg-arrange.py -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.resultpath}/"
+                                writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
+                                sh "python3 ./pkg-arrange.py -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.resultpath}/"
                                 collectPackages.each { pkg ->
                                     sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
                                     sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/_makefile/${pkg}.mk /root/artifact_dir/.makefile"
