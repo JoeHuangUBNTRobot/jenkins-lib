@@ -132,6 +132,14 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                     m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}")
 
                     dir("$m.build_dir") {
+                        // checkout master by default
+                        checkout([
+                             $class: 'GitSCM',
+                             branches:  [[name: 'refs/remotes/origin/master']],
+                             doGenerateSubmoduleConfigurations: false,
+                             extensions: [],
+                             userRemoteConfigs: [[credentialsId: "${scm.userRemoteConfigs.credentialsId[0]}", url: "${scm.userRemoteConfigs.url[0]}"]]
+                        ])
                         def co_map = checkout scm
                         def url = co_map.GIT_URL
                         def git_args = git_helper.split_url(url)
@@ -185,11 +193,20 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                         m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
                         print m.upload_info
 
-                        def last_successful_commit = utility.getLastSuccessfulCommit()
-                        if (env.commitHash && !env.commitHash.isEmpty()) {
-                            last_successful_commit = env.commitHash
-                        } else if (!last_successful_commit) {
-                            last_successful_commit = "HEAD~"
+                        def last_successful_commit
+                        if (is_pr) {
+                            last_successful_commit = sh_output("git merge-base remotes/origin/${env.BRANCH_NAME} remotes/origin/${env.CHANGE_TARGET}")
+                        } else {
+                            if (env.BRANCH_NAME != 'master' && !(is_tag || is_atag)) { // non-master branch build
+                                last_successful_commit = sh_output("git merge-base remotes/origin/${env.BRANCH_NAME} remotes/origin/master")
+                            } else {
+                                last_successful_commit = utility.getLastSuccessfulCommit()
+                                if (env.commitHash && !env.commitHash.isEmpty()) {
+                                    last_successful_commit = env.commitHash
+                                } else if (!last_successful_commit) {
+                                    last_successful_commit = "HEAD~"
+                                }
+                            }
                         }
                         print last_successful_commit
 
