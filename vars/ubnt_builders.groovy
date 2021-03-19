@@ -353,8 +353,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
         [
             UDMPROSE: [product: 'unifi-udm-pro-se-controller.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', additional_store: ['image/dream-image/uImage', 'image/dream-image/vmlinux', 'image/dream-image/vmlinuz-*-ui-alpine'], bootloader_url: "False"],
             UDMPROSEFCD: [product: 'unifi-udm-pro-se-fcd.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', additional_store: ['image/dream-image/uImage', 'image/dream-image/vmlinux', 'image/dream-image/vmlinuz-*-ui-alpine'], bootloader_url: "False"],
-            UDR: [product: 'unifi-dream-router-controller.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udm', additional_store: ['image/mtk7622-fwimage/uImage']],
-            UDRFCD: [product: 'unifi-dream-router-fcd.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udm', additional_store: ['image/mtk7622-fwimage/uImage']]
+            UDR: [product: 'unifi-dream-router-controller.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udr', additional_store: ['image/mtk7622-fwimage/uImage']],
+            UDRFCD: [product: 'unifi-dream-router-fcd.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udr', additional_store: ['image/mtk7622-fwimage/uImage']]
         ]
     ]
 
