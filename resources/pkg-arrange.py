@@ -83,11 +83,15 @@ def delete_file(path, dry):
         path.unlink()
 
 
-def filter_file(path, args):
+def filter_files_not_handled(path, args):
     if path.is_dir():
         return True
 
-    if not re.match(r'^(\.deb|\.build.*|\.changes|\.mk)$', path.suffix):
+    if re.match(r'^(\.mk)$', path.suffix):
+        # Don't handle *.mk files, just let it pass
+        return True
+
+    if not re.match(r'^(\.deb|\.build.*|\.changes)$', path.suffix):
         delete_file(path, args.dry_run)
         return True
 
@@ -120,7 +124,7 @@ def get_pkg_series(pkg_name):
 def arrange_directory(args):
     file_list = [f for f in args.directory.rglob('*')]
     for f in file_list:
-        if filter_file(f, args):
+        if filter_files_not_handled(f, args):
             continue
 
         tokens = re.split(r'[._]', str(f.name))
@@ -139,16 +143,16 @@ def arrange_directory(args):
         pkg_dist_dir = PurePosixPath(
             pkg_series) / args.dist / pkg_arch / pkg_verion / pkg_ker_ver
 
-        print('Move {} to {}'.format(f, dst_path))
         if f.suffix == '.deb':
             if pkg_name not in pkg_info_list:
                 pkg_info_list[pkg_name] = PkgMkInfo(pkg_name, pkg_verion,
                                                     pkg_arch, pkg_dist_dir)
             pkg_info_list[pkg_name].add_md5sum(pkg_ker_ver, f)
 
-            if not args.dry_run:
-                dst_path.mkdir(parents=True, exist_ok=True)
-                f.rename(dst_path / f.name)
+        print('Move {} to {}'.format(f, dst_path))
+        if not args.dry_run:
+            dst_path.mkdir(parents=True, exist_ok=True)
+            f.rename(dst_path / f.name)
 
     remove_empty_dir(args.directory, args.dry_run)
     makefile_dir = args.directory / '_makefile'
