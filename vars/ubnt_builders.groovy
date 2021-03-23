@@ -261,8 +261,8 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 sh "python3 ./pkg-arrange.py -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.resultpath}/"
                                 collectPackages.each { pkg ->
                                     sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
-                                    sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/_makefile/${pkg}.mk /root/artifact_dir/.makefile"
                                 }
+                                sh "cp -f ${m.resultpath}/_makefile/*.mk /root/artifact_dir/.makefile || true"
                                 // Intentionally use .makefile to avoid uploading to nas job dir
                                 sh 'make distclean 2>&1'
                             }

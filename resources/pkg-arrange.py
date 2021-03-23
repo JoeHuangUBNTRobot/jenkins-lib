@@ -10,6 +10,7 @@ spcial_pkg_series = {
     'ustd': 'ustd',
     'ustd-ro': 'ustd',
     'ustd-naked': 'ustd',
+    'ustd-stub': 'ustd',
 }
 
 
