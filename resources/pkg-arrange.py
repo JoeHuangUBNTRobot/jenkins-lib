@@ -15,12 +15,13 @@ spcial_pkg_series = {
 
 
 class PkgMkInfo:
-    def __init__(self, name, version, arch, base_path):
+    def __init__(self, dist, series, name, version, arch):
         self.name = name
         self.version = version
         self.arch = arch
         self.deb_name = ''
-        self.base_path = base_path
+        self.series = series
+        self.dist = dist
         self.md5sum_list = dict()
 
     def add_md5sum(self, kernel_version, deb_file):
@@ -44,18 +45,30 @@ class PkgMkInfo:
         if self.arch == 'all':
             arch = 'all'
 
-        makefile.write('# {}\n'.format('/'.join(
-            [base_url, str(self.base_path), self.deb_name])))
+        if isinstance(self.md5sum_list, str):
+            makefile.write('# {}\n'.format('/'.join([
+                base_url, self.series, self.dist, self.arch, self.version,
+                self.deb_name
+            ])))
+        else:
+            makefile.write('# {}\n'.format('/'.join([
+                base_url, self.series, self.dist, self.arch, self.version,
+                next(iter(self.md5sum_list)), self.deb_name
+            ])))
         makefile.write('{}:={}\n'.format(variable_pkg_name, self.name))
         makefile.write('{}:={}\n\n'.format(variable_pkg_version, self.version))
 
         if isinstance(self.md5sum_list, str):
-            base_url = base_url + '/' + str(self.base_path)
+            base_url = '/'.join([
+                base_url, self.series, '$(_distro)', arch,
+                '$({})'.format(variable_pkg_version)
+            ])
             makefile.write('{}:={}\n'.format(variable_md5, self.md5sum_list))
         else:
-            base_url = '/'.join(
-                [base_url,
-                 str(self.base_path.with_name('$(KVER_DIR)'))])
+            base_url = '/'.join([
+                base_url, self.series, '$(_distro)', arch,
+                '$({})'.format(variable_pkg_version), '$(KVER_DIR)'
+            ])
             for kver in self.md5sum_list:
                 makefile.write('{}_{}_MD5:={}\n'.format(
                     variable_name_prefix, kver, self.md5sum_list[kver]))
@@ -66,13 +79,13 @@ class PkgMkInfo:
         makefile.write('{}:={}\n\n'.format(variable_base_url, base_url))
         makefile.write('PKG_FILE:=$({})_$({})_{}.deb\n'.format(
             variable_pkg_name, variable_pkg_version, arch))
-        makefile.write('PKG_BASEURL:=$({})\n'.format(variable_base_url))
         if isinstance(self.md5sum_list, str):
             makefile.write('PKG_FILE_MD5SUM:=$({})\n'.format(variable_md5))
         else:
             makefile.write(
                 'PKG_FILE_MD5SUM:=$(value {}_$(KVER_DIR)_MD5)\n'.format(
                     variable_name_prefix))
+        makefile.write('PKG_BASEURL:=$({})\n'.format(variable_base_url))
 
 
 pkg_info_list = dict()
@@ -140,14 +153,11 @@ def arrange_directory(args):
             pkg_ker_ver = str(f.parent.name)
         dst_path = args.directory / pkg_series / args.dist / pkg_arch / pkg_verion / pkg_ker_ver
 
-        # This variable will be used to gen makefile
-        pkg_dist_dir = PurePosixPath(
-            pkg_series) / args.dist / pkg_arch / pkg_verion / pkg_ker_ver
-
         if f.suffix == '.deb':
             if pkg_name not in pkg_info_list:
-                pkg_info_list[pkg_name] = PkgMkInfo(pkg_name, pkg_verion,
-                                                    pkg_arch, pkg_dist_dir)
+                pkg_info_list[pkg_name] = PkgMkInfo(args.dist, pkg_series,
+                                                    pkg_name, pkg_verion,
+                                                    pkg_arch)
             pkg_info_list[pkg_name].add_md5sum(pkg_ker_ver, f)
 
         print('Move {} to {}'.format(f, dst_path))
