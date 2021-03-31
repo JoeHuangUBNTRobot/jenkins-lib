@@ -125,7 +125,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
             build_steps: { m->
                 sh 'export'
                 def buildPackages = []
-                def collectPackages = []
                 stage ("checkout $m.name") {
                     m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
                     sh "mkdir -p ${m.artifact_dir}"
@@ -211,18 +210,12 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                         print last_successful_commit
 
                         if (m.non_cross) {
-                            sh_output("./pkg-tools.py -nc -lf -rg $last_successful_commit").tokenize('\n').each {
-                                buildPackages << it
-                            }
                             sh_output("./pkg-tools.py -nc -rg $last_successful_commit").tokenize('\n').each {
-                                collectPackages << it
+                                buildPackages << it
                             }
                         } else {
-                            sh_output("./pkg-tools.py -lf -rg $last_successful_commit").tokenize('\n').each {
-                                buildPackages << it
-                            }
                             sh_output("./pkg-tools.py -rg $last_successful_commit").tokenize('\n').each {
-                                collectPackages << it
+                                buildPackages << it
                             }
                         }
                         m.buildPackages = buildPackages
@@ -259,7 +252,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 sh "mkdir -p /root/artifact_dir/.makefile"
                                 writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
                                 sh "python3 ./pkg-arrange.py -d ${m.dist} -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.resultpath}/"
-                                collectPackages.each { pkg ->
+                                buildPackages.each { pkg ->
                                     sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
                                 }
                                 sh "cp -f ${m.resultpath}/_makefile/*.mk /root/artifact_dir/.makefile || true"
