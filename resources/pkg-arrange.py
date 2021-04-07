@@ -11,6 +11,8 @@ spcial_pkg_series = {
     'ustd-ro': 'ustd',
     'ustd-naked': 'ustd',
     'ustd-stub': 'ustd',
+    'devreg-mt7622': 'devreg',
+    'devreg-al324': 'devreg',
 }
 
 
