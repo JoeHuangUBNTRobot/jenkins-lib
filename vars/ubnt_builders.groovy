@@ -864,7 +864,9 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                         }
                         finally {
                             sh 'chmod -R 777 .'
+                            sh 'mkdir -p /root/artifact_dir/dtb'
                             sh "cp -rT ${m.dist} /root/artifact_dir || true"
+                            sh "cp -r ${m.dist}/input/*.dtb /root/artifact_dir/dtb || true"
                             sh 'mv make.log /root/artifact_dir'
                             sh 'rm -rf /root/artifact_dir/input || true'
                             dir_cleanup("${deleteWsPath}") {
