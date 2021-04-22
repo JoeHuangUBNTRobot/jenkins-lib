@@ -207,14 +207,18 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 }
                             }
                         }
-                        print last_successful_commit
+                        def pkg_tools_params = "-g ${last_successful_commit}"
+                        if (env.ForceChangesPkgs && !env.ForceChangesPkgs.isEmpty()) {
+                            pkg_tools_params = env.ForceChangesPkgs.tokenize(';&|').join(' ')
+                        }
+                        print pkg_tools_params
 
                         if (m.non_cross) {
-                            sh_output("./pkg-tools.py -nc -rg $last_successful_commit").tokenize('\n').each {
+                            sh_output("./pkg-tools.py -nc -r ${pkg_tools_params}").tokenize('\n').each {
                                 buildPackages << it
                             }
                         } else {
-                            sh_output("./pkg-tools.py -rg $last_successful_commit").tokenize('\n').each {
+                            sh_output("./pkg-tools.py -r ${pkg_tools_params}").tokenize('\n').each {
                                 buildPackages << it
                             }
                         }
