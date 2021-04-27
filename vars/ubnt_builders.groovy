@@ -575,7 +575,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         withCredentials([string(
                             credentialsId: 'IEV_JENKINS_TOKEN',
                             variable:'jobtoken')]) {
-                            def HOST="iev-jenkins-old.rad.ubnt.com:8082"
+                            def HOST="kyiv-vega.rad.ubnt.com"
                             def JOB="Udm_FW_Dispatcher"
                             def job_info = m.upload_info.path.join('_')
                             def fw_name = "${m.git_args.local_branch}.${m.git_args.rev_num}"
@@ -587,7 +587,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 "&FW_URL=${url}" +
                                 "&FW_COMMIT=${m.git_args.revision}"
                             print data
-                            sh "curl -k -d \"${data}\" \"http://${HOST}/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
+                            sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
                         }
                     }
                 }
