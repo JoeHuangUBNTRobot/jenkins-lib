@@ -590,6 +590,25 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
                         }
                     }
+                    if (name == 'UCKP') {
+                        withCredentials([string(
+                                credentialsId: 'NET_JENKINS_TOKEN',
+                                variable: 'jobtoken')]) {
+                            def HOST = "jenkins.network-controller-prod.a.uidev.tools"
+                            def JOB = "unifi-network-be-e2e-tests/network-e2e-cloudkey-firmware-trigger"
+                            def job_info = m.upload_info.path.join('_')
+                            def fw_name = "${m.git_args.local_branch}.${m.git_args.rev_num}"
+                            def data = "BRANCH=${m.git_args.local_branch}" +
+                                    "&FW_NAME=${fw_name}" +
+                                    "&FW_DIR=${m.upload_info.dir_name}" +
+                                    "&BUILD_TYPE=${target_map.product}" +
+                                    "&FW_VERSION=${job_info}" +
+                                    "&FW_URL=${url}" +
+                                    "&FW_COMMIT=${m.git_args.revision}"
+                            print data
+                            sh "curl -k -d \"${data}\" \"https://${HOST}/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
+                        }
+                    }
                 }
             }
         ])
