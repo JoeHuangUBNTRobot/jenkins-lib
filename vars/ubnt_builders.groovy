@@ -241,15 +241,8 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 dockerImage = docker.image("debbox-builder-qemu-${m.dist}-arm64:latest")
                             }
                             dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
-                                m.build_failed = []
-                                for (pkg in buildPackages) {
-                                    def cmd = "make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes $pkg 2>&1"
-                                    def status = sh_output.status_code(cmd)
-                                    if (status) {
-                                        m.build_failed << pkg
-                                    }
-                                }
-                                println "build_failed pkg: ${m.build_failed}"
+                                def build_targets = buildPackages.join(' ')
+                                sh "make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes ${build_targets} 2>&1"
 
                                 def upload_prefix = m.upload_info.path.join('/')
 
@@ -263,6 +256,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 // Intentionally use .makefile to avoid uploading to nas job dir
                                 sh 'make distclean 2>&1'
                             }
+                            m.build_status = true
                         }
                         catch (Exception e) {
                             m.build_status = false
@@ -270,11 +264,6 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                         }
                         finally {
                             deleteDir()
-                            if (m.build_failed.size() == 0) {
-                                m.build_status = true
-                            } else {
-                                println "build failed package: ${m.build_failed}"
-                            }
                             return m.build_status
                         }
                     }
