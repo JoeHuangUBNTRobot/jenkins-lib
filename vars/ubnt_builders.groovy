@@ -680,8 +680,8 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                 m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
             },
             build_steps: { m ->
-                sh "mkdir -p ${m.artifact_dir}/${artifact_prefix}"
-                m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/${artifact_prefix}")
+                sh "mkdir -p ${m.artifact_dir}"
+                m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}")
 
                 def deleteWsPath
                 ws("${m.build_dir}") {
@@ -738,6 +738,12 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                             throw e
                         }
                         finally {
+                            def upload_prefix = m.upload_info.path.join('/')
+
+                            sh "mkdir -p /root/artifact_dir/.makefile"
+                            writeFile file:'pkg-arrange2.py', text:libraryResource("pkg-arrange2.py")
+                            sh "python3 ./pkg-arrange2.py -o /root/artifact_dir/.makefile -d ${distribution} -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.dist}/"
+
                             sh 'chmod -R 777 .'
                             sh "cp -rT ${m.dist} /root/artifact_dir || true"
                             sh 'mv make.log /root/artifact_dir || true'
@@ -752,7 +758,7 @@ def debpkg(Map job_options, configs=['stretch/all']) {
             },
             archive_steps: { m ->
                 stage("Artifact ${m.name}") {
-                    if (fileExists("$m.artifact_dir/${artifact_prefix}/make.log")) {
+                    if (fileExists("$m.artifact_dir/make.log")) {
                         archiveArtifacts artifacts: "${m.artifact_dir}/**"
                         if (m.upload && m.containsKey('upload_info')) {
                             def upload_path = m.upload_info.path.join('/')
