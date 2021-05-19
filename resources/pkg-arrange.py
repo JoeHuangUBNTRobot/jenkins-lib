@@ -168,7 +168,10 @@ def arrange_directory(args):
             f.rename(dst_path / f.name)
 
     remove_empty_dir(args.directory, args.dry_run)
-    makefile_dir = args.directory / '_makefile'
+    if args.output_dir is not None:
+        makefile_dir = args.output_dir
+    else:
+        makefile_dir = args.directory / '_makefile'
     makefile_dir.mkdir(parents=True, exist_ok=True)
     for p in pkg_info_list.values():
         with (makefile_dir / p.name).with_suffix('.mk').open('w') as f:
@@ -177,7 +180,7 @@ def arrange_directory(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Put output dir to artifact dir format')
+        description='Put debfactory output dir to artifact dir format')
 
     parser.add_argument('--dist',
                         '-d',
@@ -186,6 +189,7 @@ def parse_args():
                         help='Distribution of debian')
 
     parser.add_argument('--dry_run', '-n', action='store_true')
+    parser.add_argument('--output_dir', '-o', type=PosixPath, default=None)
     parser.add_argument('--pkg_url_base', '-u', default='')
     parser.add_argument('directory', type=PosixPath)
 
