@@ -738,15 +738,10 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                             throw e
                         }
                         finally {
-                            def upload_prefix = m.upload_info.path.join('/')
-
-                            sh "mkdir -p /root/artifact_dir/.makefile"
-                            writeFile file:'pkg-arrange2.py', text:libraryResource("pkg-arrange2.py")
-                            sh "python3 ./pkg-arrange2.py -o /root/artifact_dir/.makefile -d ${distribution} -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.dist}/"
-
                             sh 'chmod -R 777 .'
-                            sh "cp -rT ${m.dist} /root/artifact_dir || true"
-                            sh 'mv make.log /root/artifact_dir || true'
+                            sh "mkdir -p /root/artifact_dir/${distribution}"
+                            sh "cp -rT ${m.dist} /root/artifact_dir/${distribution} || true"
+                            sh "mv make.log /root/artifact_dir/${distribution} || true"
                             dir_cleanup("${deleteWsPath}") {
                                 echo "cleanup ws ${deleteWsPath}"
                                 deleteDir()
@@ -758,13 +753,24 @@ def debpkg(Map job_options, configs=['stretch/all']) {
             },
             archive_steps: { m ->
                 stage("Artifact ${m.name}") {
-                    if (fileExists("$m.artifact_dir/make.log")) {
+                    if (fileExists("$m.artifact_dir/${distribution}/make.log")) {
                         archiveArtifacts artifacts: "${m.artifact_dir}/**"
                         if (m.upload && m.containsKey('upload_info')) {
                             def upload_path = m.upload_info.path.join('/')
                             def latest_path = m.upload_info.latest_path.join('/')
+                            def ref_path = m.upload_info.ref_path.join('/')
+
+                            writeFile file:'pkg-arrange2.py', text:libraryResource("pkg-arrange2.py")
+                            sh "python3 ./pkg-arrange2.py " +
+                                "-o ${ubnt_nas.get_nasdir}/${ref_path}/../.makefile/${distribution} " +
+                                "-c ${ubnt_nas.get_nasdir}/${ref_path}/../.makefile.bkp/${distribution} " +
+                                "-d ${distribution} " +
+                                "-u ${ubnt_nas.get_nasdomain()}/${upload_path} " +
+                                "${m.artifact_dir}/"
+
                             println "upload: $upload_path ,artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
                             ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
+
                         }
                     }
                 }

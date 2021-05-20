@@ -45,9 +45,9 @@ class PkgMkInfo:
         ])
         makefile.write('{}:={}\n'.format(variable_md5, self.md5sum_list))
         makefile.write('{}:={}\n\n'.format(variable_base_url, base_url))
+
         makefile.write('PKG_FILE:=$({})_$({})_{}.deb\n'.format(
             variable_pkg_name, variable_pkg_version, arch))
-
         makefile.write('PKG_FILE_MD5SUM:=$({})\n'.format(variable_md5))
         makefile.write('PKG_BASEURL:=$({})\n'.format(variable_base_url))
 
@@ -63,6 +63,9 @@ def delete_file(path, dry):
 
 def filter_files_not_handled(path, args):
     if path.is_dir():
+        return True
+
+    if 'make.log' == path.name:
         return True
 
     if re.match(r'^(\.mk)$', path.suffix):
@@ -90,6 +93,37 @@ def remove_empty_dir(path, dry):
                 if not dry:
                     has_empty = True
                     d.rmdir()
+
+
+def compare_version_less(new_version_str, latest_mkfile):
+    if not latest_mkfile.is_file():
+        return False
+
+    old_version = [0, 0, 0]
+    with latest_mkfile.open() as f:
+        m = re.search(
+            r'.*?VERSION:=(\d+)\.(\d+)\.(\d+)[-~](\d+)\+g(\w+)(M?)\n',
+            f.read())
+        if m is not None:
+            try:
+                old_version = [int(v) for v in m.group(1, 2, 3)]
+            except:
+                pass
+
+    new_version = [9999, 9999, 9999]
+    m = re.match(r'(\d+)\.(\d+)\.(\d+)[-~](\d+)\+g(\w+)(M?)', new_version_str)
+    if m is not None:
+        try:
+            new_version = [int(v) for v in m.group(1, 2, 3)]
+        except:
+            pass
+
+    for (new, old) in zip(new_version, old_version):
+        if new < old:
+            return True
+
+    # new_version is greater than or equals to old_version
+    return False
 
 
 def arrange_directory(args):
@@ -123,6 +157,11 @@ def arrange_directory(args):
         makefile_dir = args.directory / '_makefile'
     makefile_dir.mkdir(parents=True, exist_ok=True)
     for p in pkg_info_list.values():
+        if args.compare_dir is not None and compare_version_less(
+                p.version, (args.compare_dir / p.name).with_suffix('.mk')):
+            print('{}\'s version {} is less than latest. skip ...'.format(p.name, p.version))
+            continue
+        print('Generate {}\'s makefile with version {}'.format(p.name, p.version))
         with (makefile_dir / p.name).with_suffix('.mk').open('w') as f:
             p.generate_makefile(f, args.pkg_url_base)
 
@@ -139,6 +178,7 @@ def parse_args():
 
     parser.add_argument('--dry_run', '-n', action='store_true')
     parser.add_argument('--output_dir', '-o', type=PosixPath, default=None)
+    parser.add_argument('--compare_dir', '-c', type=PosixPath, default=None)
     parser.add_argument('--pkg_url_base', '-u', default='')
     parser.add_argument('directory', type=PosixPath)
 
