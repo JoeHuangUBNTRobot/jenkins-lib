@@ -40,9 +40,7 @@ class PkgMkInfo:
         makefile.write('{}:={}\n'.format(variable_pkg_name, self.name))
         makefile.write('{}:={}\n\n'.format(variable_pkg_version, self.version))
 
-        base_url = '/'.join([
-            base_url, '$(_distro)', arch, '$({})'.format(variable_pkg_version)
-        ])
+        base_url = '/'.join([base_url, '$(_distro)', arch])
         makefile.write('{}:={}\n'.format(variable_md5, self.md5sum_list))
         makefile.write('{}:={}\n\n'.format(variable_base_url, base_url))
 
@@ -159,9 +157,11 @@ def arrange_directory(args):
     for p in pkg_info_list.values():
         if args.compare_dir is not None and compare_version_less(
                 p.version, (args.compare_dir / p.name).with_suffix('.mk')):
-            print('{}\'s version {} is less than latest. skip ...'.format(p.name, p.version))
+            print('{}\'s version {} is less than latest. skip ...'.format(
+                p.name, p.version))
             continue
-        print('Generate {}\'s makefile with version {}'.format(p.name, p.version))
+        print('Generate {}\'s makefile with version {}'.format(
+            p.name, p.version))
         with (makefile_dir / p.name).with_suffix('.mk').open('w') as f:
             p.generate_makefile(f, args.pkg_url_base)
 

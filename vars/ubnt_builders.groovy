@@ -738,9 +738,9 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                             throw e
                         }
                         finally {
-                            sh 'chmod -R 777 .'
                             sh "mkdir -p /root/artifact_dir/${distribution}"
                             sh "cp -rT ${m.dist} /root/artifact_dir/${distribution} || true"
+                            sh 'chmod -R 777 . /root/artifact_dir/'
                             sh "mv make.log /root/artifact_dir/${distribution} || true"
                             dir_cleanup("${deleteWsPath}") {
                                 echo "cleanup ws ${deleteWsPath}"
@@ -760,17 +760,18 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                             def latest_path = m.upload_info.latest_path.join('/')
                             def ref_path = m.upload_info.ref_path.join('/')
 
-                            writeFile file:'pkg-arrange2.py', text:libraryResource("pkg-arrange2.py")
-                            sh "python3 ./pkg-arrange2.py " +
-                                "-o ${ubnt_nas.get_nasdir}/${ref_path}/../.makefile/${distribution} " +
-                                "-c ${ubnt_nas.get_nasdir}/${ref_path}/../.makefile.bkp/${distribution} " +
-                                "-d ${distribution} " +
-                                "-u ${ubnt_nas.get_nasdomain()}/${upload_path} " +
-                                "${m.artifact_dir}/"
+                            if (m.git_args.is_tag) {
+                                writeFile file:'pkg-arrange2.py', text:libraryResource("pkg-arrange2.py")
+                                sh "python3 ./pkg-arrange2.py " +
+                                    "-o ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile/${distribution} " +
+                                    "-c ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp/${distribution} " +
+                                    "-d ${distribution} " +
+                                    "-u ${ubnt_nas.get_nasdomain()}/${upload_path} " +
+                                    "${m.artifact_dir}/"
+                            }
 
-                            println "upload: $upload_path ,artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
+                            println "upload: $upload_path, artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
                             ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
-
                         }
                     }
                 }
