@@ -177,10 +177,10 @@ def parse_args():
                         help='Distribution of debian')
 
     parser.add_argument('--dry_run', '-n', action='store_true')
-    parser.add_argument('--output_dir', '-o', type=PosixPath, default=None)
-    parser.add_argument('--compare_dir', '-c', type=PosixPath, default=None)
+    parser.add_argument('--output_dir', '-o', type=lambda p : PosixPath(p).resolve(), default=None)
+    parser.add_argument('--compare_dir', '-c', type=lambda p : PosixPath(p).resolve(), default=None)
     parser.add_argument('--pkg_url_base', '-u', default='')
-    parser.add_argument('directory', type=PosixPath)
+    parser.add_argument('directory', type=lambda p : PosixPath(p).resolve())
 
     return parser.parse_args()
 
