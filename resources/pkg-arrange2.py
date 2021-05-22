@@ -166,6 +166,13 @@ def arrange_directory(args):
             p.generate_makefile(f, args.pkg_url_base)
 
 
+def check_dir_and_resolve(path):
+    p = PosixPath(path)
+    if not p.is_dir():
+        p.mkdir(parents=True, exist_ok=True)
+    return p.resolve()
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Put pkgdeb output dir to artifact dir format')
@@ -177,10 +184,16 @@ def parse_args():
                         help='Distribution of debian')
 
     parser.add_argument('--dry_run', '-n', action='store_true')
-    parser.add_argument('--output_dir', '-o', type=lambda p : PosixPath(p).resolve(), default=None)
-    parser.add_argument('--compare_dir', '-c', type=lambda p : PosixPath(p).resolve(), default=None)
+    parser.add_argument('--output_dir',
+                        '-o',
+                        type=check_dir_and_resolve,
+                        default=None)
+    parser.add_argument('--compare_dir',
+                        '-c',
+                        type=check_dir_and_resolve,
+                        default=None)
     parser.add_argument('--pkg_url_base', '-u', default='')
-    parser.add_argument('directory', type=lambda p : PosixPath(p).resolve())
+    parser.add_argument('directory', type=check_dir_and_resolve)
 
     return parser.parse_args()
 

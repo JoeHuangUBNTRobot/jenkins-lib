@@ -528,7 +528,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
         ])
     }
     build_product.each { name, target_map ->
-        if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix) && name != 'UDMPROSE') {
+        if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix)) {
             return
         }
 
@@ -559,7 +559,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         }
                     }
 
-                    if (name == 'UDMPROSE') {
+                    if (name == 'UDMPROSE' || name == 'UDR') {
                         withCredentials([string(
                             credentialsId: 'IEV_JENKINS_TOKEN',
                             variable:'jobtoken')]) {
@@ -762,9 +762,13 @@ def debpkg(Map job_options, configs=['stretch/all']) {
 
                             if (m.git_args.is_tag) {
                                 writeFile file:'pkg-arrange2.py', text:libraryResource("pkg-arrange2.py")
+                                sh "mkdir -p ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile/${distribution}"
+                                sh "mkdir -p ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp/${distribution}"
+                                makefile_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile/${distribution}")
+                                makefile_bkp_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp/${distribution}")
                                 sh "python3 ./pkg-arrange2.py " +
-                                    "-o ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile/${distribution} " +
-                                    "-c ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp/${distribution} " +
+                                    "-o ${makefile_path} " +
+                                    "-c ${makefile_bkp_path} " +
                                     "-d ${distribution} " +
                                     "-u ${ubnt_nas.get_nasdomain()}/${upload_path} " +
                                     "${m.artifact_dir}/"
