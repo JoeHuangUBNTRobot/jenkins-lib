@@ -842,6 +842,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                     dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
                         sh 'pwd'
                         def co_map = checkout scm
+                        sh 'git submodule update --init --recursive'
                         sh 'ls -alhi'
                         def url = co_map.GIT_URL
                         def git_args = git_helper.split_url(url)
