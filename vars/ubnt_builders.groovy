@@ -762,8 +762,8 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                                 writeFile file:'pkg-arrange2.py', text:libraryResource("pkg-arrange2.py")
                                 sh "mkdir -p ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile/${distribution}"
                                 sh "mkdir -p ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp/${distribution}"
-                                makefile_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile/${distribution}")
-                                makefile_bkp_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp/${distribution}")
+                                def makefile_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile/${distribution}")
+                                def makefile_bkp_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp/${distribution}")
                                 sh "python3 ./pkg-arrange2.py " +
                                     "-o ${makefile_path} " +
                                     "-c ${makefile_bkp_path} " +
