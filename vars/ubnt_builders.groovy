@@ -338,6 +338,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
         [
             UDMPROSE: [product: 'unifi-udm-pro-se-controller.alpine', resultpath: 'target-unifi-udm-pro-se.alpine', tag_prefix: 'unifi-udm', additional_store: ['image/dream-image/uImage', 'image/dream-image/vmlinux', 'image/dream-image/vmlinuz-*-ui-alpine'], pack_bootloader: 'yes'],
             UDR: [product: 'unifi-dream-router-controller.mt7622', resultpath: 'target-unifi-dream-router.mt7622', tag_prefix: 'unifi-udr', additional_store: ['image/mtk7622-fwimage/uImage'], pack_bootloader: 'yes'],
+            UDW: [product: 'unifi-dream-wall.alpine', resultpath: 'target-unifi-dream-wall.alpine', tag_prefix: 'unifi-udw', additional_store: ['image/dream-wall-image/uImage', 'image/dream-wall-image/vmlinux', 'image/dream-wall-image/vmlinuz-*-alpine-udw'], pack_bootloader: 'yes']
         ]
     ]
 
