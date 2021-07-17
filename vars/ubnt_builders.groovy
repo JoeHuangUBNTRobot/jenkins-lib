@@ -632,7 +632,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         // always try to get latest version script
                         if(fileExists("${mkenv}")) {
                             sh "rm ${mkenv}"
-                        }                        
+                        }
                         sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/mkenv.py -O ${mkenv}"
                         sh ". ~/.profile; python3 mkenv.py -ds -q -tp ${tokenPath}"
                         sh "${sqaCI} clone ${testCaseProj} -token ${tokenPath}"
