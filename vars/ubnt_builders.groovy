@@ -596,6 +596,72 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             sh "curl -k -d \"${data}\" \"https://${HOST}/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
                         }
                     }
+
+                    // skip UDMPSE and UDR test
+                    if (name == 'UDMPROSE' || name == 'UDR') {
+                    	return
+                    }
+              
+                    def sqaciProj = 'tpe-sqa-ci'
+                    def upylibProj = 'tpe-protect-python-lib'
+                    def testCaseProj = 'unifi-protect-fw-sqa'
+                    def curDir = sh (
+                        script: "pwd",
+                        returnStdout: true
+                    ).trim()
+                    
+                    def sqaciDir = "${curDir}/SqaCI"
+                    def srcDir = "${sqaciDir}/source"
+                    def sqaCI = "${srcDir}/${sqaciProj}/SqaCI"
+                    def mkenv = "${curDir}/mkenv"
+                    def testCaseProjPath = "${srcDir}/${testCaseProj}"
+                    
+                    def confDir = "${sqaciDir}"
+                    def tokenPath = "${sqaciDir}/token.json"
+                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/token/token.json -O ${tokenPath}"
+                    def dutConf = "${sqaciDir}/dut.py"
+                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/debbox_dut/${name}.py -O ${dutConf}"
+                    def testConf = "${sqaciDir}/testconf.py"
+                    def testRailConf = "${sqaciDir}/testrail.cfg"
+                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/testrail/testrail.cfg -O ${testRailConf}"                  
+                    // check SqaCI was existed
+                    def exist = fileExists "${sqaciDir}"
+                    if(!exist) {
+                        // always try to get latest version script
+                        def scriptExist = fileExists "${mkenv}"
+                        if(scriptExist) {	
+                            sh "rm ${mkenv}"
+                        }
+                        sh 'wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/mkenv.py -O mkenv.py'
+                        sh ". ~/.profile; python3 mkenv.py -ds -q -tp ${tokenPath}"
+                        sh "${sqaCI} clone ${testCaseProj} -token ${tokenPath}"
+                    }
+                    // self update to latest tag
+                    sh "${sqaCI} update ${sqaciProj} -t latest"
+                    sh "${sqaCI} build --dev"
+                    // update project to latest tag
+                    sh "${sqaCI} update ${upylibProj} -t latest"
+                    sh "${sqaCI} update ${testCaseProj} -t latest"
+                    // build python package
+                    sh "${sqaCI} pip install -r ${testCaseProjPath}/requirements.txt"
+                    sh "${sqaCI} build --dev"
+                    // write test conf
+                    sh "echo \'fw_url=\"${url}\"\' > ${testConf}"
+                    sh "echo \'fw_build_date=\"${build_date}\"\' >> ${testConf}"
+                    dir("${testCaseProjPath}") {
+                        def cmd = "HOSTNAME=${name} ${sqaCI} run -g debbox_smoke_test " +
+                                    "-d ${dutConf} -c ${testConf} --pytest " +
+                                    "--update-testrail --testrail-config ${testRailConf}"
+                        def retCode = sh (
+                            script: cmd,
+                            returnStatus:true
+                        )
+                        if (retCode != 0) {
+                            currentBuild.result = 'FAILURE'
+                        }
+                    }
+
+
                 }
             }
         ])
