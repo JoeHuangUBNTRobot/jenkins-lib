@@ -613,26 +613,27 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     def sqaciDir = "${curDir}/SqaCI"
                     def srcDir = "${sqaciDir}/source"
                     def sqaCI = "${srcDir}/${sqaciProj}/SqaCI"
-                    def mkenv = "${curDir}/mkenv"
+                    def mkenv = "${curDir}/mkenv.py"
                     def testCaseProjPath = "${srcDir}/${testCaseProj}"
                     
-                    def confDir = "${sqaciDir}"
-                    def tokenPath = "${sqaciDir}/token.json"
+                    def confDir = "${curDir}/testCfg"
+                    if(!fileExists("${confDir}")) {
+                        sh "mkdir ${confDir}"
+                    }
+                    def tokenPath = "${confDir}/token.json"
                     sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/token/token.json -O ${tokenPath}"
-                    def dutConf = "${sqaciDir}/dut.py"
+                    def dutConf = "${confDir}/dut.py"
                     sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/debbox_dut/${name}.py -O ${dutConf}"
-                    def testConf = "${sqaciDir}/testconf.py"
-                    def testRailConf = "${sqaciDir}/testrail.cfg"
+                    def testConf = "${confDir}/testconf.py"
+                    def testRailConf = "${confDir}/testrail.cfg"
                     sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/testrail/testrail.cfg -O ${testRailConf}"                  
                     // check SqaCI was existed
-                    def exist = fileExists "${sqaciDir}"
-                    if(!exist) {
+                    if(!fileExists("${sqaciDir}") {
                         // always try to get latest version script
-                        def scriptExist = fileExists "${mkenv}"
-                        if(scriptExist) {	
+                        if(fileExists("${mkenv}")) {	
                             sh "rm ${mkenv}"
                         }
-                        sh 'wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/mkenv.py -O mkenv.py'
+                        sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/mkenv.py -O ${mkenv}"
                         sh ". ~/.profile; python3 mkenv.py -ds -q -tp ${tokenPath}"
                         sh "${sqaCI} clone ${testCaseProj} -token ${tokenPath}"
                     }
