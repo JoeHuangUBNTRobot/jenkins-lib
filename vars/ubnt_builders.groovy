@@ -627,16 +627,30 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     def testConf = "${confDir}/testconf.py"
                     def testRailConf = "${confDir}/testrail.cfg"
                     sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/testrail/testrail2.cfg -O ${testRailConf}"                  
-                    // check SqaCI was existed
-                    if(!fileExists("${sqaciDir}")) {
-                        // always try to get latest version script
-                        if(fileExists("${mkenv}")) {
-                            sh "rm ${mkenv}"
-                        }
-                        sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/mkenv2.py -O ${mkenv}"
-                        sh ". ~/.profile; python3 ${mkenv} -ds -q -tp ${tokenPath}"
-                        sh "${sqaCI} clone ${testCaseProj} -token ${tokenPath}"
+                    
+                    // force remove SqaCI and mkenv.py
+                    if(fileExists("${sqaciDir}")) {
+                        sh "rm -rf ${sqaciDir}"
                     }
+                    if(fileExists("${mkenv}")) {
+                        sh "rm ${mkenv}"
+                    }
+
+                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/mkenv2.py -O ${mkenv}"
+                    sh ". ~/.profile; python3 ${mkenv} -ds -q -tp ${tokenPath}"
+                    sh "${sqaCI} clone ${testCaseProj} -token ${tokenPath}"
+                    
+                    // check SqaCI was existed
+                    //if(!fileExists("${sqaciDir}")) {
+                    //    // always try to get latest version script
+                    //    if(fileExists("${mkenv}")) {
+                    //        sh "rm ${mkenv}"
+                    //    }
+                    //    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/mkenv2.py -O ${mkenv}"
+                    //    sh ". ~/.profile; python3 ${mkenv} -ds -q -tp ${tokenPath}"
+                    //    sh "${sqaCI} clone ${testCaseProj} -token ${tokenPath}"
+                    //}
+
                     // self update to latest tag
                     sh "${sqaCI} update ${sqaciProj} -t latest"
                     sh "${sqaCI} build --dev"
