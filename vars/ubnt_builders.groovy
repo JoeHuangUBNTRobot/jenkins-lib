@@ -626,7 +626,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/debbox_dut/${name}.py -O ${dutConf}"
                     def testConf = "${confDir}/testconf.py"
                     def testRailConf = "${confDir}/testrail.cfg"
-                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/testrail/testrail.cfg -O ${testRailConf}"                  
+                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/testrail/testrail2.cfg -O ${testRailConf}"                  
                     // check SqaCI was existed
                     if(!fileExists("${sqaciDir}")) {
                         // always try to get latest version script
