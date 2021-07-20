@@ -613,7 +613,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                                parameters: params,
                                                auth: CredentialsAuth(credentials: 'trigger')
                     }
-                    currentBuild.result = job.getBuildResult()
+                    currentBuild.result = job.getBuildResult().toString()
                 }
             }
         ])
