@@ -601,82 +601,19 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     if (name == 'UDMPROSE' || name == 'UDR' || name == 'UDW') {
                     	return
                     }
-              
-                    def sqaciProj = 'tpe-sqa-ci'
-                    def upylibProj = 'tpe-protect-python-lib'
-                    def testCaseProj = 'unifi-protect-fw-sqa'
-                    def curDir = sh (
-                        script: "pwd",
-                        returnStdout: true
-                    ).trim()
-                    
-                    def sqaciDir = "${curDir}/SqaCI"
-                    def srcDir = "${sqaciDir}/source"
-                    def sqaCI = "${srcDir}/${sqaciProj}/SqaCI"
-                    def mkenv = "${curDir}/mkenv.py"
-                    def testCaseProjPath = "${srcDir}/${testCaseProj}"
-                    
-                    def confDir = "${curDir}/testCfg"
-                    if(!fileExists("${confDir}")) {
-                        sh "mkdir ${confDir}"
-                    }
-                    def tokenPath = "${confDir}/token.json"
-                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/token/token.json -O ${tokenPath}"
-                    def dutConf = "${confDir}/dut.py"
-                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/debbox_dut/${name}.py -O ${dutConf}"
-                    def testConf = "${confDir}/testconf.py"
-                    def testRailConf = "${confDir}/testrail.cfg"
-                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/testrail/testrail2.cfg -O ${testRailConf}"                  
-                    
-                    // force remove SqaCI and mkenv.py
-                    if(fileExists("${sqaciDir}")) {
-                        sh "rm -rf ${sqaciDir}"
-                    }
-                    if(fileExists("${mkenv}")) {
-                        sh "rm ${mkenv}"
-                    }
 
-                    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/mkenv2.py -O ${mkenv}"
-                    sh ". ~/.profile; python3 ${mkenv} -ds -q -tp ${tokenPath}"
-                    sh "${sqaCI} clone ${testCaseProj} -token ${tokenPath}"
-                    
-                    // check SqaCI was existed
-                    //if(!fileExists("${sqaciDir}")) {
-                    //    // always try to get latest version script
-                    //    if(fileExists("${mkenv}")) {
-                    //        sh "rm ${mkenv}"
-                    //    }
-                    //    sh "wget http://tpe-pbsqa-ci.rad.ubnt.com:8888/share_space/SqaCI/mkenv2.py -O ${mkenv}"
-                    //    sh ". ~/.profile; python3 ${mkenv} -ds -q -tp ${tokenPath}"
-                    //    sh "${sqaCI} clone ${testCaseProj} -token ${tokenPath}"
-                    //}
-
-                    // self update to latest tag
-                    sh "${sqaCI} update ${sqaciProj} -t latest"
-                    sh "${sqaCI} build --dev"
-                    // update project to latest tag
-                    sh "${sqaCI} update ${upylibProj} -t latest"
-                    sh "${sqaCI} update ${testCaseProj} -t latest"
-                    // build python package
-                    sh "${sqaCI} pip install -r ${testCaseProjPath}/requirements.txt"
-                    sh "${sqaCI} build --dev"
-                    // write test conf
-                    sh "echo \'fw_url=\"${url}\"\' > ${testConf}"
-                    sh "echo \'fw_build_date=\"${build_date}\"\' >> ${testConf}"
-                    dir("${testCaseProjPath}") {
-                        def cmd = "HOSTNAME=${name} ${sqaCI} run -g debbox_smoke_test " +
-                                    "-d ${dutConf} -c ${testConf} --pytest " +
-                                    "--update-testrail --testrail-config ${testRailConf}"
-                        def retCode = sh (
-                            script: cmd,
-                            returnStatus:true
-                        )
-                        if (retCode != 0) {
-                            currentBuild.result = 'FAILURE'
-                        }
+                    def params = "fw_url=${url}\nfw_build_date=${build_date}"
+                    def job = null
+                    if (name == 'UNVR') {
+                        job = triggerRemoteJob job: "http://tpe-pbsqa-ci.rad.ubnt.com:8787/job/Debbox/job/UNVR_smoke_entry",
+                                               parameters: params,
+                                               auth: CredentialsAuth(credentials: 'trigger')
+                    } else {
+                        job = triggerRemoteJob job: "http://tpe-pbsqa-ci.rad.ubnt.com:8787/job/Debbox/job/${name}_smoke_test",
+                                               parameters: params,
+                                               auth: CredentialsAuth(credentials: 'trigger')
                     }
-
-
+                    currentBuild.result = job.getBuildResult()
                 }
             }
         ])
