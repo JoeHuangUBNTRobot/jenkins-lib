@@ -544,8 +544,9 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                 if (m.containsKey('upload_info')) {
                     def upload_path = m.upload_info.path.join('/')
                     def relative_path = "${upload_path}/${m.product}/FW.LATEST.bin"
+                    def fw_path = ubnt_nas.get_fw_linkpath(relative_path)
                     def build_date = ubnt_nas.get_fw_build_date(relative_path)
-                    def url = "${url_domain}/${relative_path}"
+                    def url = "${url_domain}/${fw_path}"
                     echo "url: $url, build_date: $build_date"
                     withCredentials([string(
                         credentialsId: 'UNASHACKER_TOKEN',

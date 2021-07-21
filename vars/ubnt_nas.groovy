@@ -88,6 +88,14 @@ def upload(src_path, dst_path, latest_path, link_subdir = false) {
     return nasinfo
 }
 
+def get_fw_linkpath(firmware_relative_path) {
+    def nasdir = "$HOME/builder"
+    def fw_path = "${nasdir}/${firmware_relative_path}"
+    fw_path = sh_output("readlink -f $fw_path")
+    fw_path = fw_path.replace("${nasdir}/", "")
+    return fw_path
+}
+
 def get_fw_build_date(firmware_relative_path) {
     def nasdir = "$HOME/builder"
     def fw_path = "${nasdir}/${firmware_relative_path}"
