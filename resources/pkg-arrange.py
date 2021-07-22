@@ -48,12 +48,12 @@ class PkgMkInfo:
             arch = 'all'
 
         if isinstance(self.md5sum_list, str):
-            makefile.write('# {}\n'.format('/'.join([
+            makefile.write('# {}\n\n'.format('/'.join([
                 base_url, self.series, self.dist, self.arch, self.version,
                 self.deb_name
             ])))
         else:
-            makefile.write('# {}\n'.format('/'.join([
+            makefile.write('# {}\n\n'.format('/'.join([
                 base_url, self.series, self.dist, self.arch, self.version,
                 next(iter(self.md5sum_list)), self.deb_name
             ])))

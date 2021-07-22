@@ -35,7 +35,7 @@ class PkgMkInfo:
         if self.arch == 'all':
             arch = 'all'
 
-        makefile.write('# {}\n'.format('/'.join(
+        makefile.write('# {}\n\n'.format('/'.join(
             [base_url, self.dist, self.arch, self.deb_name])))
         makefile.write('{}:={}\n'.format(variable_pkg_name, self.name))
         makefile.write('{}:={}\n\n'.format(variable_pkg_version, self.version))
