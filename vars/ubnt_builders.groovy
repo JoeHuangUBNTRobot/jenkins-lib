@@ -254,6 +254,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                     sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
                                 }
                                 sh 'make distclean 2>&1'
+                                sh 'chmod -R 777 /root/artifact_dir'
                             }
                             m.build_status = true
                         }
@@ -284,6 +285,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                             def ref_path = m.upload_info.ref_path.join('/')
                             ref_path = "${ubnt_nas.get_nasdir()}/${ref_path}"
                             sh "rsync -av ${m.absolute_artifact_dir}/.makefile/ ${ref_path}/.makefile/"
+                            sh "rm -rf ${m.absolute_artifact_dir}"
                         }
                     }
                 }
@@ -776,6 +778,7 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                             println "upload: $upload_path, artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
                             ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
                         }
+                        sh "rm -rf ${m.artifact_dir}/${distribution}"
                     }
                 }
             }
@@ -897,6 +900,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                             sh "cp -r ${m.dist}/input/*.dtb /root/artifact_dir/dtb || true"
                             sh 'mv make.log /root/artifact_dir'
                             sh 'rm -rf /root/artifact_dir/input || true'
+                            sh 'chmod -R 777 /root/artifact_dir'
                             dir_cleanup("${deleteWsPath}") {
                                 echo "cleanup ws ${deleteWsPath}"
                                 deleteDir()
@@ -918,6 +922,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                             if (m.upload) {
                                 ubnt_nas.upload("${m.artifact_dir}/${m.artifact_prefix}", upload_path, latest_path)
                             }
+                            sh "rm -rf ${m.artifact_diri}/${m.artifact_prefix}"
                         }
                     }
                 }
@@ -1010,6 +1015,7 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
                         sh "cp ${m.dist} /root/artifact_dir || true"
                         sh 'mv make.log /root/artifact_dir'
                         sh 'rm -rf /root/artifact_dir/input || true'
+                        sh 'chmod -R 777 /root/artifact_dir'
                         dir_cleanup("${deleteWsPath}") {
                             echo "cleanup ws ${deleteWsPath}"
                             deleteDir()
@@ -1031,6 +1037,7 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
                         if (m.upload) {
                             ubnt_nas.upload("${m.artifact_dir}/${m.artifact_prefix}", upload_path, latest_path)
                         }
+                        sh "rm -rf ${m.artifact_dir}/${m.artifact_prefix}"
                     }
                 }
             }
@@ -1108,6 +1115,7 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
                         }
                     }
                     archiveArtifacts artifacts: "${m.artifact_dir}/**"
+                    sh "rm -rf ${m.artifact_dir}"
                 }
             }
         }
@@ -1186,6 +1194,7 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
         archive_steps: { m ->
             stage("Artifact ${m.name}") {
                 archiveArtifacts artifacts: "${m.artifact_dir}/**"
+                sh "rm -rf ${m.artifact_dir}"
             }
         }
     ])
