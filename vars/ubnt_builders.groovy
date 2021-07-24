@@ -608,11 +608,11 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     if (name == 'UNVR') {
                         job = triggerRemoteJob job: "http://tpe-pbsqa-ci.rad.ubnt.com:8787/job/Debbox/job/UNVR_smoke_entry",
                                                parameters: params,
-                                               auth: CredentialsAuth(credentials: 'trigger')
+                                               auth: CredentialsAuth(credentials: 'jenkins8787-trigger')
                     } else {
                         job = triggerRemoteJob job: "http://tpe-pbsqa-ci.rad.ubnt.com:8787/job/Debbox/job/${name}_smoke_test",
                                                parameters: params,
-                                               auth: CredentialsAuth(credentials: 'trigger')
+                                               auth: CredentialsAuth(credentials: 'jenkins8787-trigger')
                     }
                     currentBuild.result = job.getBuildResult().toString()
                 }
