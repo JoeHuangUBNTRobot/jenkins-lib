@@ -567,15 +567,25 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             def JOB="Udm_FW_Dispatcher"
                             def job_info = m.upload_info.path.join('_')
                             def fw_name = "${m.git_args.local_branch}.${m.git_args.rev_num}"
-                            def data = "BRANCH=${m.git_args.local_branch}" +
-                                "&FW_NAME=${fw_name}" +
-                                "&FW_DIR=${m.upload_info.dir_name}" +
-                                "&BUILD_TYPE=${target_map.product}" +
-                                "&FW_VERSION=${job_info}" +
-                                "&FW_URL=${url}" +
-                                "&FW_COMMIT=${m.git_args.revision}"
-                            print data
-                            sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\" --data-urlencode"
+                            // def data = "BRANCH=${m.git_args.local_branch}" +
+                            //     "&FW_NAME=${fw_name}" +
+                            //     "&FW_DIR=${m.upload_info.dir_name}" +
+                            //     "&BUILD_TYPE=${target_map.product}" +
+                            //     "&FW_VERSION=${job_info}" +
+                            //     "&FW_URL=${url}" +
+                            //     "&FW_COMMIT=${m.git_args.revision}"
+                            // print data
+                            def udmpse_json = "\'{\"parameter\": " +
+                                              "[{\"name\":\"BRANCH\", \"value\":\"${m.git_args.local_branch}\"}, " +
+                                              "{\"name\":\"FW_NAME\", \"value\":\"${fw_name}\"}, " +
+                                              "{\"name\":\"FW_DIR\", \"value\":\"${m.upload_info.dir_name}}\"}, " +
+                                              "{\"name\":\"BUILD_TYPE\", \"value\":\"${target_map.product}\"}, " +
+                                              "{\"name\":\"FW_VERSION\", \"value\":\"${job_info}\"}, " +
+                                              "{\"name\":\"FW_URL\", \"value\":\"${url}\"}, " +
+                                              "{\"name\":\"FW_COMMIT\", \"value\":\"${m.git_args.revision}\"}]}\'"
+                            sh "curl -k -X POST \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\" --data-urlencode json=${udmpse_json}"
+                            
+                            // sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\" --data-urlencode"
                         }
                     }
                     if (name == 'UCKP') {
