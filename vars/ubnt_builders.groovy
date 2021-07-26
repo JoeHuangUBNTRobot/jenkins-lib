@@ -575,7 +575,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 "&FW_URL=${url_domain}/${relative_path}" +
                                 "&FW_COMMIT=${m.git_args.revision}"
                             print data
-                            sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\" --data-urlencode"
+                            sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
                             // def udmpse_json = "\'{\"parameter\": " +
                             //                   "[{\"name\":\"BRANCH\", \"value\":\"${m.git_args.local_branch}\"}, " +
                             //                   "{\"name\":\"FW_NAME\", \"value\":\"${fw_name}\"}, " +
