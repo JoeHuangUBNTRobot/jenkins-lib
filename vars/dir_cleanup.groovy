@@ -14,6 +14,5 @@ def call(path, body) {
             echo "cleanup dir ${tmp_dir}"
             deleteDir()
         }
-        sh "rm -rf ${tmp_dir} || true"
     }
 }

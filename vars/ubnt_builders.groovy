@@ -254,7 +254,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                     sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
                                 }
                                 sh 'make distclean 2>&1'
-                                sh 'chmod -R 777 /root/artifact_dir'
+                                sh 'chmod -R 644 /root/artifact_dir'
                             }
                             m.build_status = true
                         }
@@ -485,7 +485,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             }
                             finally {
                                 // In order to cleanup the dl and build directory
-                                sh 'chmod -R 777 .'
+                                sh 'chmod -R 644 .'
                                 deleteDir()
                             }
                         }
@@ -741,7 +741,7 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                         finally {
                             sh "mkdir -p /root/artifact_dir/${distribution}"
                             sh "cp -rT ${m.dist} /root/artifact_dir/${distribution} || true"
-                            sh 'chmod -R 777 . /root/artifact_dir/'
+                            sh 'chmod -R 644 . /root/artifact_dir/'
                             sh "mv make.log /root/artifact_dir/${distribution} || true"
                             dir_cleanup("${deleteWsPath}") {
                                 echo "cleanup ws ${deleteWsPath}"
@@ -894,13 +894,13 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                             throw e
                         }
                         finally {
-                            sh 'chmod -R 777 .'
+                            sh 'chmod -R 644 .'
                             sh 'mkdir -p /root/artifact_dir/dtb'
                             sh "cp -rT ${m.dist} /root/artifact_dir || true"
                             sh "cp -r ${m.dist}/input/*.dtb /root/artifact_dir/dtb || true"
                             sh 'mv make.log /root/artifact_dir'
                             sh 'rm -rf /root/artifact_dir/input || true'
-                            sh 'chmod -R 777 /root/artifact_dir'
+                            sh 'chmod -R 644 /root/artifact_dir'
                             dir_cleanup("${deleteWsPath}") {
                                 echo "cleanup ws ${deleteWsPath}"
                                 deleteDir()
@@ -1011,11 +1011,11 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
                         throw e
                     }
                     finally {
-                        sh 'chmod -R 777 .'
+                        sh 'chmod -R 644 .'
                         sh "cp ${m.dist} /root/artifact_dir || true"
                         sh 'mv make.log /root/artifact_dir'
                         sh 'rm -rf /root/artifact_dir/input || true'
-                        sh 'chmod -R 777 /root/artifact_dir'
+                        sh 'chmod -R 644 /root/artifact_dir'
                         dir_cleanup("${deleteWsPath}") {
                             echo "cleanup ws ${deleteWsPath}"
                             deleteDir()
@@ -1178,7 +1178,7 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
                             throw e
                         }
                         finally {
-                            sh 'chmod -R 777 .'
+                            sh 'chmod -R 644 .'
                             sh "cp -rT ${m.dist} /root/artifact_dir || true"
                             sh 'mv make.log /root/artifact_dir || true'
                         }
