@@ -232,6 +232,8 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                 }
                 stage("build $m.name") {
                     if (buildPackages.size() == 0) {
+                        dir_cleanup("$m.build_dir") {
+                        }
                         return
                     }
                     dir_cleanup("$m.build_dir") {
@@ -271,6 +273,8 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
             },
             archive_steps: { m->
                 if (m.buildPackages.size() == 0) {
+                    dir_cleanup("$m.build_dir") {
+                    }
                     return
                 }
                 stage("Artifact ${m.name}") {
