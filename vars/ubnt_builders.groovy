@@ -575,7 +575,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 "&FW_URL=${url}" +
                                 "&FW_COMMIT=${m.git_args.revision}"
                             print data
-                            sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
+                            sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\" --data-urlencode"
                         }
                     }
                     if (name == 'UCKP') {
