@@ -92,9 +92,10 @@ def remove_empty_dir(path, dry):
                     has_empty = True
                     d.rmdir()
 
-
+# a.k.a not greater or equals to
 def compare_version_less(new_version_str, latest_mkfile):
     if not latest_mkfile.is_file():
+        print('{} not exists'.format(latest_mkfile))
         return False
 
     old_version = [0, 0, 0]
@@ -116,11 +117,12 @@ def compare_version_less(new_version_str, latest_mkfile):
         except:
             pass
 
+    print('Compare version between {} and {}'.format(new_version, old_version))
     for (new, old) in zip(new_version, old_version):
-        if new < old:
-            return True
+        if new != old:
+            return new < old
 
-    # new_version is greater than or equals to old_version
+    # new_version equals to old_version
     return False
 
 
