@@ -124,6 +124,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
             non_cross: job_options.non_cross ?: false,
             build_steps: { m->
                 sh 'export'
+                def username = sh_output("whoami")
+                def uid = sh_output("id -zu $username")
+                def gid = sh_output("id -zg $username")
                 def buildPackages = []
                 stage ("checkout $m.name") {
                     m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
@@ -256,6 +259,8 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                     sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
                                 }
                                 sh 'make distclean 2>&1'
+                                sh "echo gid=$gid uid:$uid"
+                                sh "chown $uid:$gid -R /root/artifact_dir"
                             }
                             m.build_status = true
                         }
