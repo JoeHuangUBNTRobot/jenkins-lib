@@ -615,11 +615,11 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     def params = "fw_url=${url}"
                     def job = null
                     if (name == 'UNVR') {
-                        job = triggerRemoteJob job: "http://tpe-pbsqa-ci.rad.ubnt.com:8787/job/Debbox/job/UNVR_smoke_entry",
+                        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UNVR_smoke_entry",
                                                parameters: params,
                                                auth: CredentialsAuth(credentials: 'jenkins8787-trigger')
                     } else {
-                        job = triggerRemoteJob job: "http://tpe-pbsqa-ci.rad.ubnt.com:8787/job/Debbox/job/${name}_smoke_test",
+                        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/${name}_smoke_test",
                                                parameters: params,
                                                auth: CredentialsAuth(credentials: 'jenkins8787-trigger')
                     }
