@@ -935,7 +935,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                             if (m.upload) {
                                 ubnt_nas.upload("${m.artifact_dir}/${m.artifact_prefix}", upload_path, latest_path)
                             }
-                            sh "rm -rf ${m.artifact_diri}/${m.artifact_prefix}"
+                            sh "rm -rf ${m.artifact_dir}/${m.artifact_prefix}"
                         }
                     }
                 }
