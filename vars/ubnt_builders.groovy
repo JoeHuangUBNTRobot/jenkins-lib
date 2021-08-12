@@ -247,22 +247,28 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                             }
                             dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
                                 def build_targets = buildPackages.join(' ')
-                                sh "make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes ${build_targets} 2>&1"
+                                try {
+                                    sh "make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes ${build_targets} 2>&1"
 
-                                def upload_prefix = m.upload_info.path.join('/')
+                                    def upload_prefix = m.upload_info.path.join('/')
 
-                                // Intentionally use .makefile to avoid uploading to nas job dir
-                                sh "mkdir -p /root/artifact_dir/.makefile"
-                                writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
-                                sh "python3 ./pkg-arrange.py -o /root/artifact_dir/.makefile -d ${m.dist} -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.resultpath}/"
-                                buildPackages.each { pkg ->
-                                    sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
+                                    // Intentionally use .makefile to avoid uploading to nas job dir
+                                    sh "mkdir -p /root/artifact_dir/.makefile"
+                                    writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
+                                    sh "python3 ./pkg-arrange.py -o /root/artifact_dir/.makefile -d ${m.dist} -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.resultpath}/"
+                                    buildPackages.each { pkg ->
+                                        sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
+                                    }
+                                } 
+                                catch (Exception e) {
+                                    throw e
+                                } finally {
+                                    sh 'make distclean 2>&1'
+                                    sh "echo gid=$gid uid:$uid"
+                                    sh "chown $uid:$gid -R /root/artifact_dir"
                                 }
-                                sh 'make distclean 2>&1'
-                                sh "echo gid=$gid uid:$uid"
-                                sh "chown $uid:$gid -R /root/artifact_dir"
+                                m.build_status = true
                             }
-                            m.build_status = true
                         }
                         catch (Exception e) {
                             m.build_status = false
