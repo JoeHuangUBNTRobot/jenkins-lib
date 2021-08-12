@@ -479,6 +479,9 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 }
                             }
                             catch (Exception e) {
+                                // Due to we have the build error, remove all at here
+                                sh "rm -rf /root/artifact_dir"
+                                sh "rm -rf build"
                                 throw e
                             }
                             finally {
