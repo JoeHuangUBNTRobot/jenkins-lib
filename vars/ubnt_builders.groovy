@@ -257,6 +257,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                     writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
                                     sh "python3 ./pkg-arrange.py -o /root/artifact_dir/.makefile -d ${m.dist} -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.resultpath}/"
                                     buildPackages.each { pkg ->
+                                        pkg = pkg.replaceAll('-dev$|-dbgsym$','')
                                         sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
                                     }
                                 } 
