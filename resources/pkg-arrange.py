@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
+import subprocess
+import json
 import re
 import argparse
 import os
 import hashlib
-from pathlib import PurePosixPath, PosixPath
+from pathlib import PosixPath
 
 spcial_pkg_series = {
     'ustd': 'ustd',
@@ -17,7 +19,7 @@ spcial_pkg_series = {
 
 
 class PkgMkInfo:
-    def __init__(self, dist, series, name, version, arch):
+    def __init__(self, dist, series, name, version, arch, multi_var_name):
         self.name = name
         self.version = version
         self.arch = arch
@@ -25,16 +27,17 @@ class PkgMkInfo:
         self.series = series
         self.dist = dist
         self.md5sum_list = dict()
+        self.multi_var_name = multi_var_name
 
-    def add_md5sum(self, kernel_version, deb_file):
+    def is_multi(self):
+        return '.' not in self.md5sum_list
+
+    def add_md5sum(self, multi_name, deb_file):
         self.deb_name = deb_file.name
         m = hashlib.md5()
         m.update(deb_file.read_bytes())
 
-        if len(kernel_version) != 0:
-            self.md5sum_list[kernel_version] = m.hexdigest()
-        else:
-            self.md5sum_list = m.hexdigest()
+        self.md5sum_list[multi_name] = m.hexdigest()
 
     def generate_makefile(self, makefile, base_url):
         variable_name_prefix = self.name.upper().replace('-', '_')
@@ -47,46 +50,60 @@ class PkgMkInfo:
         if self.arch == 'all':
             arch = 'all'
 
-        if isinstance(self.md5sum_list, str):
+        if not self.is_multi():
             makefile.write('# {}\n\n'.format('/'.join([
-                base_url, self.series, self.dist, self.arch, self.version,
-                self.deb_name
+                base_url,
+                self.series,
+                self.dist,
+                self.arch,
+                self.version,
+                self.deb_name,
             ])))
         else:
             makefile.write('# {}\n\n'.format('/'.join([
-                base_url, self.series, self.dist, self.arch, self.version,
-                next(iter(self.md5sum_list)), self.deb_name
+                base_url,
+                self.series,
+                self.dist,
+                self.arch,
+                self.version,
+                next(iter(self.md5sum_list)),
+                self.deb_name,
             ])))
         makefile.write('{}:={}\n'.format(variable_pkg_name, self.name))
         makefile.write('{}:={}\n\n'.format(variable_pkg_version, self.version))
 
-        if isinstance(self.md5sum_list, str):
+        if not self.is_multi():
             base_url = '/'.join([
-                base_url, self.series, '$(_distro)', arch,
-                '$({})'.format(variable_pkg_version)
-            ])
-            makefile.write('{}:={}\n'.format(variable_md5, self.md5sum_list))
+                base_url,
+                self.series,
+                '$(_distro)',
+                arch,
+                '$({})',
+            ]).format(variable_pkg_version)
+            makefile.write('{}:={}\n'.format(variable_md5,
+                                             self.md5sum_list['.']))
         else:
             base_url = '/'.join([
-                base_url, self.series, '$(_distro)', arch,
-                '$({})'.format(variable_pkg_version), '$(KVER_DIR)'
-            ])
-            for kver in self.md5sum_list:
+                base_url,
+                self.series,
+                '$(_distro)',
+                arch,
+                '$({})',
+                '$({})',
+            ]).format(variable_pkg_version, self.multi_var_name)
+            for multi_name in self.md5sum_list:
                 makefile.write('{}_{}_MD5:={}\n'.format(
-                    variable_name_prefix, kver, self.md5sum_list[kver]))
-            makefile.write(
-                'KVER_DIR:=$(BUILD_KERNEL_VERSION)$(BUILD_KERNEL_LOCALVERSION)\n'
-            )
+                    variable_name_prefix, multi_name,
+                    self.md5sum_list[multi_name]))
 
         makefile.write('{}:={}\n\n'.format(variable_base_url, base_url))
         makefile.write('PKG_FILE:=$({})_$({})_{}.deb\n'.format(
             variable_pkg_name, variable_pkg_version, arch))
-        if isinstance(self.md5sum_list, str):
+        if not self.is_multi():
             makefile.write('PKG_FILE_MD5SUM:=$({})\n'.format(variable_md5))
         else:
-            makefile.write(
-                'PKG_FILE_MD5SUM:=$(value {}_$(KVER_DIR)_MD5)\n'.format(
-                    variable_name_prefix))
+            makefile.write('PKG_FILE_MD5SUM:=$(value {}_$({})_MD5)\n'.format(
+                variable_name_prefix, self.multi_var_name))
         makefile.write('PKG_BASEURL:=$({})\n'.format(variable_base_url))
 
 
@@ -137,37 +154,65 @@ def get_pkg_series(pkg_name):
                                  re.sub(r'(-dev|-dbgsym)', '', pkg_name))
 
 
+multi_var_name_map = None
+
+
+def get_pkg_list():
+    result = subprocess.check_output(['make', 'pkg-list'])
+    return str(result, encoding='utf8')
+
+
+def parse_pkg_multi_var(pkg_list):
+    output_list = dict()
+    for pkg in json.loads(pkg_list):
+        try:
+            output_list[pkg['n']] = pkg.get('v', None)
+        except KeyError:
+            continue
+
+    return output_list
+
+
+def get_multi_var_name(pkg_name):
+    global multi_var_name_map
+    if multi_var_name_map is None:
+        multi_var_name_map = parse_pkg_multi_var(get_pkg_list())
+    return multi_var_name_map.get(pkg_name, None)
+
+
 def arrange_directory(args):
     file_list = [f for f in args.directory.rglob('*')]
     for f in file_list:
         if filter_files_not_handled(f, args):
             continue
 
-        tokens = re.split(r'[._]', str(f.name))
+        tokens = re.split(r'[._]', str(f.stem))
         pkg_name = tokens[0]
-        pkg_verion = '.'.join(tokens[1:-2])
-        pkg_arch = tokens[-2]
+        pkg_verion = '.'.join(tokens[1:-1])
+        pkg_arch = tokens[-1]
         pkg_series = get_pkg_series(pkg_name)
-        pkg_ker_ver = ''
+        relpath = f.relative_to(args.directory)
+        multi_name = str(relpath.parent)
+        multi_var_name = get_multi_var_name(pkg_series)
 
-        # Check if there is kernel version in path
-        if f.parent != args.directory:
-            pkg_ker_ver = str(f.parent.name)
-        dst_path = args.directory / pkg_series / args.dist / pkg_arch / pkg_verion / pkg_ker_ver
+        dst_path = args.directory / pkg_series / args.dist / pkg_arch / pkg_verion / relpath
 
         if f.suffix == '.deb':
             if pkg_name not in pkg_info_list:
                 pkg_info_list[pkg_name] = PkgMkInfo(args.dist, pkg_series,
                                                     pkg_name, pkg_verion,
-                                                    pkg_arch)
-            pkg_info_list[pkg_name].add_md5sum(pkg_ker_ver, f)
+                                                    pkg_arch, multi_var_name)
+            pkg_info_list[pkg_name].add_md5sum(multi_name, f)
 
         print('Move {} to {}'.format(f, dst_path))
         if not args.dry_run:
-            dst_path.mkdir(parents=True, exist_ok=True)
-            f.rename(dst_path / f.name)
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            f.rename(dst_path)
 
     remove_empty_dir(args.directory, args.dry_run)
+
+
+def generate_makefile(args):
     if args.output_dir is not None:
         makefile_dir = args.output_dir
     else:
@@ -197,4 +242,6 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    arrange_directory(parse_args())
+    args = parse_args()
+    arrange_directory(args)
+    generate_makefile(args)
