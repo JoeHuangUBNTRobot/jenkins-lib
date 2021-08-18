@@ -618,7 +618,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                                auth: CredentialsAuth(credentials: 'jenkins8787-trigger')
                     }
                     
-                    currentBuild.result = job.getBuildResult().toString()
+                    // currentBuild.result = job.getBuildResult().toString()
                 }
             }
         ])
