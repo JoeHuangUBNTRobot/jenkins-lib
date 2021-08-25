@@ -600,7 +600,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     }
 
                     // skip UDMPSE, UDR and UDW test
-                    if (name == 'UDMPROSE' || name == 'UDR' || name == 'UDW') {
+                    if (name == 'UDMPROSE' || name == 'UDR' || name == 'UDW' || name == 'UDMPRO') {
                     	return
                     }
 
