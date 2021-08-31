@@ -625,44 +625,52 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 
 def disk_smart_mon_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    //return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    return debpkg(job_options, ['stretch/arm64'])
 }
 
 def disk_quota_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    //return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    return debpkg(job_options, ['stretch/arm64'])
 }
 
 def analytic_report_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    //return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    return debpkg(job_options, ['stretch/arm64'])
 }
 
 def debbox_base_files_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/all', 'buster/all'])
+    //return debpkg(job_options, ['stretch/all', 'buster/all'])
+    return debpkg(job_options, ['stretch/all'])
 }
 
 def cloudkey_apq8053_initramfs_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/all', 'buster/all'])
+    //return debpkg(job_options, ['stretch/all', 'buster/all'])
+    return debpkg(job_options, ['stretch/all'])
 }
 
 def ubnt_archive_keyring_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/all', 'buster/all'])
+    //return debpkg(job_options, ['stretch/all', 'buster/all'])
+    return debpkg(job_options, ['stretch/all'])
 }
 
 def ubnt_zram_swap_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/all', 'buster/all'])
+    //return debpkg(job_options, ['stretch/all', 'buster/all'])
+    return debpkg(job_options, ['stretch/all'])
 }
 
 def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
 
     // stretch/amd64 could not build successfully
-    return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    //return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
+    return debpkg(job_options, ['stretch/arm64'])
 }
 /*
  * A general package build function
