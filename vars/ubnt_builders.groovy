@@ -1,3 +1,5 @@
+semaphore = 0
+total_job = 0
 def bash(String cmd) { sh("#!/usr/bin/env bash\nset -euo pipefail\n${cmd}") }
 
 def get_docker_registry() {
@@ -363,7 +365,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
         if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix)) {
             return
         }
-
+        lock("debbox_builder-${env.BUILD_NUMBER}") {
+           total_job = total_job + 1
+           println "total_job: $total_job"
+        }
         build_jobs.add([
             node: is_pr ? 'deb-img' : (job_options.node ?: 'debbox'),
             name: target_map.product,
@@ -473,6 +478,11 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 try {
                                     withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
                                         bash "AWS_PROFILE=default PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+                                    }
+                                    lock("debbox_builder-${env.BUILD_NUMBER}") {
+                                        semaphore = semaphore + 1
+                                        println "semaphore: $semaphore"
+                                        println "sz: $sz"
                                     }
                                     sh 'cp make.log /root/artifact_dir/'
                                     sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"

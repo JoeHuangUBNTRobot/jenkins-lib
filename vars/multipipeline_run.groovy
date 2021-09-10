@@ -1,3 +1,4 @@
+sz = 0
 def call(String project, String build_target, Map build_series=[:], Map job_options=[:]) {
     timestamps {
         def parallel_jobs = [:]
@@ -32,8 +33,13 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
                     }
                     return [:]
                 }
-
+                
                 if (current_jobs.size() > 0) {
+                    sz = current_jobs.size()
+                    println "current_job.size() = $sz"
+                    if (curr_execute_order == 1 && project == "debbox_builder") {
+                        current_jobs = current_jobs.plus([failFast: true])
+                    }
                     parallel current_jobs
                 }
 
