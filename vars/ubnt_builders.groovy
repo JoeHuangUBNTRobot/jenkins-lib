@@ -1,5 +1,3 @@
-semaphore = 0
-total_job = 0
 def bash(String cmd) { sh("#!/usr/bin/env bash\nset -euo pipefail\n${cmd}") }
 
 def get_docker_registry() {
@@ -305,6 +303,8 @@ def debfactory_non_cross_builder(String productSeries, Map job_options=[:], Map 
 }
 
 def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
+    def semaphore = 0
+    def total_job = 0
     def debbox_series = [
         UCK:
         [
