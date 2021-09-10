@@ -482,7 +482,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                     lock("debbox_builder-${env.BUILD_NUMBER}") {
                                         semaphore = semaphore + 1
                                         println "semaphore: $semaphore"
-                                        println "sz: $sz"
                                     }
                                     sh 'cp make.log /root/artifact_dir/'
                                     sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
