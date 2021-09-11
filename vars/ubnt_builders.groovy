@@ -716,6 +716,9 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                 m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
             },
             build_steps: { m ->
+                def username = sh_output("whoami")
+                def uid = sh_output("id -zu $username")
+                def gid = sh_output("id -zg $username")
                 sh "mkdir -p ${m.artifact_dir}"
                 m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}")
 
@@ -777,7 +780,8 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                             sh "mkdir -p /root/artifact_dir/${distribution}"
                             sh "cp -rT ${m.dist} /root/artifact_dir/${distribution} || true"
                             sh "mv make.log /root/artifact_dir/${distribution} || true"
-                            sh 'chmod -R 777 /root/artifact_dir/'
+                            sh "echo gid=$gid uid:$uid"
+                            sh "chown $uid:$gid -R /root/artifact_dir"
                             sh 'make package-clean || true'
                         }
                     }
@@ -870,6 +874,9 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                 m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
             },
             build_steps: { m ->
+                def username = sh_output("whoami")
+                def uid = sh_output("id -zu $username")
+                def gid = sh_output("id -zg $username")
                 sh "mkdir -p ${m.artifact_dir}/${m.artifact_prefix}"
                 m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/${m.artifact_prefix}")
 
@@ -935,7 +942,8 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                             sh "cp -r ${m.dist}/input/*.dtb /root/artifact_dir/dtb || true"
                             sh 'mv make.log /root/artifact_dir'
                             sh 'rm -rf /root/artifact_dir/input || true'
-                            sh 'chmod -R 777 /root/artifact_dir'
+                            sh "echo gid=$gid uid:$uid"
+                            sh "chown $uid:$gid -R /root/artifact_dir"
                         }
                     }
                 }
@@ -985,6 +993,9 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
             m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
         },
         build_steps: { m ->
+            def username = sh_output("whoami")
+            def uid = sh_output("id -zu $username")
+            def gid = sh_output("id -zg $username")
             sh "mkdir -p ${m.artifact_dir}/${m.artifact_prefix}"
             m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/${m.artifact_prefix}")
 
@@ -1049,7 +1060,8 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
                         sh "cp ${m.dist} /root/artifact_dir || true"
                         sh 'mv make.log /root/artifact_dir'
                         sh 'rm -rf /root/artifact_dir/input || true'
-                        sh 'chmod -R 777 /root/artifact_dir'
+                        sh "echo gid=$gid uid:$uid"
+                        sh "chown $uid:$gid -R /root/artifact_dir"
                     }
                 }
             }
@@ -1173,6 +1185,9 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
             m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
         },
         build_steps: { m ->
+            def username = sh_output("whoami")
+            def uid = sh_output("id -zu $username")
+            def gid = sh_output("id -zg $username")
             sh "mkdir -p ${m.artifact_dir}/stretch/arm64"
             m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/stretch/arm64")
 
@@ -1214,7 +1229,8 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
                             sh 'chmod -R 777 .'
                             sh "cp -rT ${m.dist} /root/artifact_dir || true"
                             sh 'mv make.log /root/artifact_dir || true'
-                            sh 'chmod -R 777 /root/artifact_dir'
+                            sh "echo gid=$gid uid:$uid"
+                            sh "chown $uid:$gid -R /root/artifact_dir"
                         }
                     }
                 }
