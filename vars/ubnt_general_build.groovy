@@ -34,33 +34,25 @@ def call(Map args) {
                         if (m.containsKey('build_steps')) {
                             m.build_status = m['build_steps'](m)
                         }
-                    }
-                } catch (Exception e) {
-                    echo "Caught build Exception ${e}"
-                    m.build_status = false
-                    throw e
-                } finally {
-                    try {
+                        // do archive
                         if (m.containsKey('archive_steps')) {
                             m['archive_steps'](m)
                         }
+                        // cleanup archive
                         if (m.containsKey('archive_cleanup_steps')) {
                             m['archive_cleanup_steps'](m)
                         }
+                        // qa test
                         if (m.containsKey('qa_test_steps')) {
                             stage("QA-Test ${m.name}") {
                                 m['qa_test_steps'](m)
                             }
                         }
-                    } catch (Exception e) {
-                        echo "Caught archieve Exception ${e}"
-                        throw e
-                    } finally {
-                        if (m.is_atag) {
-                            // mail notification
-                            mail bcc: '', body: "$m.branch_name", cc: '', from: '', replyTo: '', subject: 'test Mail', to: 'steve.chen@ui.com'
-                        }
                     }
+                } catch (Exception e) {
+                    echo "Caught build Exception ${e}"
+                    m.build_status = false
+                    throw e
                 }
             }
         }]

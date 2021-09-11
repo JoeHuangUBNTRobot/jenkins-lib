@@ -304,6 +304,7 @@ def debfactory_non_cross_builder(String productSeries, Map job_options=[:], Map 
 
 def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     def semaphore = 0
+    def upload_semaphore = 0
     def total_job = 0
     def debbox_series = [
         UCK:
@@ -494,6 +495,9 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                     m.additional_store.each { additional_file ->
                                         sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
                                     }
+                                    waitUntil {
+                                        semaphore == total_job
+                                    }
                                 }
                                 catch (Exception e) {
                                     // Due to we have the build error, remove all at here
@@ -511,25 +515,20 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     }
                 }
                 return true
-            }
-        ])
-    }
-    build_product.each { name, target_map ->
-        if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix)) {
-            return
-        }
-
-        build_jobs.add([
-            node: is_pr ? 'deb-img' : (job_options.node ?: 'debbox'),
-            name: target_map.product + '__UPLOAD',
-            product: target_map.product,
-            execute_order: 2,
+            },
             archive_steps: { m->
                 stage('Upload to server') {
                     if (m.upload && m.containsKey('upload_info')) {
+                        lock("debbox_builder-${env.BUILD_NUMBER}") {
+                            upload_semaphore = upload_semaphore + 1
+                            println "upload_semaphore: $upload_semaphore"
+                        }
                         def upload_path = m.upload_info.path.join('/')
                         def latest_path = m.upload_info.latest_path.join('/')
                         m.nasinfo = ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path)
+                        waitUntil {
+                            upload_semaphore == total_job
+                        }
                     }
                 }
             },
@@ -544,19 +543,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     // do nothing
                     }
                 }
-            }
-        ])
-    }
-    build_product.each { name, target_map ->
-        if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix)) {
-            return
-        }
-
-        build_jobs.add([
-            node: is_pr ? 'deb-img' : (job_options.node ?: 'debbox'),
-            name: target_map.product + '__QA',
-            product: target_map.product,
-            execute_order: 3,
+            },
             qa_test_steps: { m->
                 if (m.name.contains('fcd')) {
                     return
@@ -564,7 +551,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                 def url_domain = 'http://tpe-judo.rad.ubnt.com/build'
                 if (m.containsKey('upload_info')) {
                     def upload_path = m.upload_info.path.join('/')
-                    def relative_path = "${upload_path}/${m.product}/FW.LATEST.bin"
+                    def relative_path = "${upload_path}/${m.name}/FW.LATEST.bin"
                     def fw_path = ubnt_nas.get_fw_linkpath(relative_path)
                     def url = "${url_domain}/${fw_path}"
                     echo "url: $url"
@@ -639,6 +626,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     // currentBuild.result = job.getBuildResult().toString()
                 }
             }
+
         ])
     }
     return build_jobs
