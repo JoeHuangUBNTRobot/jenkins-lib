@@ -58,7 +58,7 @@ def upload(src_path, dst_path, latest_path, link_subdir = false) {
         println "upload from $src_path to $nas_path"
         sh "mkdir -p $nas_path"
         sh "cp -rp $src_path $nas_path"
-        if (nas_path.contains('firmware.debbox')) {
+        if (nas_path.contains('debbox')) {
             def src_basename = src_path.tokenize('/').pop()
             try {
                 def output_path = sh_output("realpath ${nas_path}/${src_basename}/*")
