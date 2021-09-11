@@ -519,16 +519,16 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             archive_steps: { m->
                 stage('Upload to server') {
                     if (m.upload && m.containsKey('upload_info')) {
-                        lock("debbox_builder-${env.BUILD_NUMBER}") {
-                            upload_semaphore = upload_semaphore + 1
-                            println "upload_semaphore: $upload_semaphore"
-                        }
                         def upload_path = m.upload_info.path.join('/')
                         def latest_path = m.upload_info.latest_path.join('/')
                         m.nasinfo = ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path)
-                        waitUntil {
-                            upload_semaphore == total_job
-                        }
+                    }
+                    lock("debbox_builder-${env.BUILD_NUMBER}") {
+                        upload_semaphore = upload_semaphore + 1
+                        println "upload_semaphore: $upload_semaphore"
+                    }
+                    waitUntil {
+                        upload_semaphore == total_job
                     }
                 }
             },
