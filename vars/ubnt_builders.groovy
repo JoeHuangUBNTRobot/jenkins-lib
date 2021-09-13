@@ -1,8 +1,15 @@
 def bash(String cmd) { sh("#!/usr/bin/env bash\nset -euo pipefail\n${cmd}") }
 
 def get_docker_registry() {
-    def dockerRegistry='http://registry.ubnt.com.tw:6666'
+    def dockerRegistry='registry.ubnt.com.tw:6666'
     return dockerRegistry
+}
+
+def get_ids() {
+    def username = sh_output("whoami")
+    def uid = sh_output("id -zu $username")
+    def gid = sh_output("id -zg $username")
+    return [uid, gid]
 }
 
 def get_job_options(String project) {
@@ -128,11 +135,10 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
             upload: job_options.upload ?: false,
             non_cross: job_options.non_cross ?: false,
             build_steps: { m->
-                sh 'export'
-                def username = sh_output("whoami")
-                def uid = sh_output("id -zu $username")
-                def gid = sh_output("id -zg $username")
+                def uid, gid
                 def buildPackages = []
+                (uid, gid) = get_ids()
+                sh 'export'
                 stage ("checkout $m.name") {
                     m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
                     sh "mkdir -p ${m.artifact_dir}"
@@ -246,10 +252,12 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                     }
                     dir_cleanup("$m.build_dir") {
                         try {
-                            def dockerImage = docker.image("dio-debfactory-${m.dist}-builder:latest")
+                            def dockerRegistry = get_docker_registry()
+                            def dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-${m.dist}-arm64:latest")
                             if (m.non_cross) {
-                                dockerImage = docker.image("debbox-builder-qemu-${m.dist}-arm64:latest")
+                                dockerImage = docker.image("$dockerRegistry/debbox-builder-qemu-${m.dist}-arm64:latest")
                             }
+                            dockerImage.pull()
                             dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
                                 def build_targets = buildPackages.join(' ')
                                 try {
@@ -275,6 +283,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                                 }
                                 m.build_status = true
                             }
+                            
                         }
                         catch (Exception e) {
                             m.build_status = false
@@ -408,114 +417,113 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                 }
                 stage("Build ${m.name}") {
                     dir_cleanup("${m.build_dir}") {
+                        def dockerImage
                         def dockerRegistry = get_docker_registry()
-                        docker.withRegistry(dockerRegistry) {
-                            def dockerImage
-                            if (productSeries == 'NX') {
-                                dockerImage = docker.image('ubuntu:nx')
-                            } else {
-                                dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
+                        if (productSeries == 'NX') {
+                            dockerImage = docker.image("$dockerRegistry/ubuntu:nx")
+                        } else {
+                            dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-stretch-arm64:latest")
+                        }
+                        dockerImage.pull()
+                        def docker_args = get_docker_args(m.docker_artifact_path) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
+                        dockerImage.inside(docker_args) {
+                            /*
+                            * tag build var:
+                            * TAG_NAME: unifi-cloudkey/v1.1.9
+                            *
+                            * pr build var:
+                            * CHANGE_BRANCH: feature/unifi-core-integration
+                            * CHANGE_ID: 32 (pull request ID)
+                            * git_args:
+                            *     user: git
+                            *     site: git.uidev.tools,
+                            *     repository: firmware.debbox
+                            *     revision: git changeset
+                            *     local_branch: feature/unifi-core-integration or unifi-cloudkey/v1.1.9
+                            *     is_pr: true or false
+                            *     is_tag: true or false
+                            *     tag: unifi-cloudkey/v1.1.9 (TAG_NAME)
+                            *     branch_name (feature/unifi-core-integration)
+                            */
+                            def co_map = checkout scm
+                            def url = co_map.GIT_URL
+                            def git_args = git_helper.split_url(url)
+                            def repository = git_args.repository
+                            echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
+                            git_args.revision = git_helper.sha()
+                            git_args.rev_num = git_helper.rev()
+                            if (is_pr && is_atag) {
+                                error 'Unexpected environment, cannot be both PR and TAG'
                             }
-                            dockerImage.pull()
-                            def docker_args = get_docker_args(m.docker_artifact_path) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
-                            dockerImage.inside(docker_args) {
-                                /*
-                                * tag build var:
-                                * TAG_NAME: unifi-cloudkey/v1.1.9
-                                *
-                                * pr build var:
-                                * CHANGE_BRANCH: feature/unifi-core-integration
-                                * CHANGE_ID: 32 (pull request ID)
-                                * git_args:
-                                *     user: git
-                                *     site: git.uidev.tools,
-                                *     repository: firmware.debbox
-                                *     revision: git changeset
-                                *     local_branch: feature/unifi-core-integration or unifi-cloudkey/v1.1.9
-                                *     is_pr: true or false
-                                *     is_tag: true or false
-                                *     tag: unifi-cloudkey/v1.1.9 (TAG_NAME)
-                                *     branch_name (feature/unifi-core-integration)
-                                */
-                                def co_map = checkout scm
-                                def url = co_map.GIT_URL
-                                def git_args = git_helper.split_url(url)
-                                def repository = git_args.repository
-                                echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
-                                git_args.revision = git_helper.sha()
-                                git_args.rev_num = git_helper.rev()
-                                if (is_pr && is_atag) {
-                                    error 'Unexpected environment, cannot be both PR and TAG'
-                                }
-                                def ref
-                                if (is_tag) {
-                                    ref = TAG_NAME
-                                    try {
-                                        git_helper.verify_is_atag(ref)
-                                    } catch (all) {
-                                        println "catch error: $all"
-                                        is_atag = false
-                                    }
-                                    println "tag build: istag: $is_tag, is_atag:$is_atag"
-                                    git_args.local_branch = ref
-                                } else if (is_pr) {
-                                    // use change branch as ref
-                                    ref = "origin/${env.CHANGE_BRANCH}"
-                                    git_args.local_branch = "PR-${env.CHANGE_ID}"
-                                } else {
-                                    ref = git_helper.current_branch()
-                                    if (!ref || ref == 'HEAD') {
-                                        ref = "origin/${BRANCH_NAME}"
-                                    }
-                                    git_args.local_branch = ref
-                                }
-                                // decide release build logic
-                                def is_release = false
-                                if (is_tag) {
-                                    if (is_atag) {
-                                        is_release = true
-                                    } else {
-                                        is_release = TAG_NAME.contains('release')
-                                    }
-                                    is_release = true
-                                }
-                                m.is_release = is_release
-                                git_args.is_pr = is_pr
-                                git_args.is_tag = is_tag
-                                git_args.is_atag = is_atag
-                                git_args.ref = ref
-                                m['git_args'] = git_args.clone()
-                                m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
-                                print m.upload_info
+                            def ref
+                            if (is_tag) {
+                                ref = TAG_NAME
                                 try {
-                                    withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
-                                        bash "AWS_PROFILE=default PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
-                                    }
-                                    sh 'cp make.log /root/artifact_dir/'
-                                    sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
-                                    sh "cp build/${m.resultpath}/bootstrap/root/usr/lib/version /root/artifact_dir/"
-                                    if (productSeries == 'UNVR' || name.contains('UNVR')) {
-                                        sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
-                                        sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
-                                        sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-* /root/artifact_dir/"
-                                    }
-                                    m.additional_store.each { additional_file ->
-                                        sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
-                                    }
+                                    git_helper.verify_is_atag(ref)
+                                } catch (all) {
+                                    println "catch error: $all"
+                                    is_atag = false
                                 }
-                                catch (Exception e) {
-                                    // Due to we have the build error, remove all at here
-                                    sh "rm -rf /root/artifact_dir"
-                                    sh "rm -rf build"
-                                    throw e
+                                println "tag build: istag: $is_tag, is_atag:$is_atag"
+                                git_args.local_branch = ref
+                            } else if (is_pr) {
+                                // use change branch as ref
+                                ref = "origin/${env.CHANGE_BRANCH}"
+                                git_args.local_branch = "PR-${env.CHANGE_ID}"
+                            } else {
+                                ref = git_helper.current_branch()
+                                if (!ref || ref == 'HEAD') {
+                                    ref = "origin/${BRANCH_NAME}"
                                 }
-                                finally {
-                                    // In order to cleanup the dl and build directory
-                                    sh 'chmod -R 777 .'
-                                    deleteDir()
+                                git_args.local_branch = ref
+                            }
+                            // decide release build logic
+                            def is_release = false
+                            if (is_tag) {
+                                if (is_atag) {
+                                    is_release = true
+                                } else {
+                                    is_release = TAG_NAME.contains('release')
                                 }
+                                is_release = true
+                            }
+                            m.is_release = is_release
+                            git_args.is_pr = is_pr
+                            git_args.is_tag = is_tag
+                            git_args.is_atag = is_atag
+                            git_args.ref = ref
+                            m['git_args'] = git_args.clone()
+                            m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
+                            print m.upload_info
+                            try {
+                                withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
+                                    bash "AWS_PROFILE=default PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+                                }
+                                sh 'cp make.log /root/artifact_dir/'
+                                sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
+                                sh "cp build/${m.resultpath}/bootstrap/root/usr/lib/version /root/artifact_dir/"
+                                if (productSeries == 'UNVR' || name.contains('UNVR')) {
+                                    sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
+                                    sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
+                                    sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-* /root/artifact_dir/"
+                                }
+                                m.additional_store.each { additional_file ->
+                                    sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
+                                }
+                            }
+                            catch (Exception e) {
+                                // Due to we have the build error, remove all at here
+                                sh "rm -rf /root/artifact_dir"
+                                sh "rm -rf build"
+                                throw e
+                            }
+                            finally {
+                                // In order to cleanup the dl and build directory
+                                sh 'chmod -R 777 .'
+                                deleteDir()
                             }
                         }
+                        
                     }
                 }
                 return true
@@ -716,28 +724,27 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                 m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
             },
             build_steps: { m ->
-                def username = sh_output("whoami")
-                def uid = sh_output("id -zu $username")
-                def gid = sh_output("id -zg $username")
+                def uid, gid
+                def deleteWsPath
+
+                (uid, gid) = get_ids()
                 sh "mkdir -p ${m.artifact_dir}"
                 m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}")
-
-                def deleteWsPath
+                
                 ws("${m.build_dir}") {
                     deleteWsPath = env.WORKSPACE
-                    def dockerImage = docker.image("debbox-builder-cross-${builder}:latest")
-
+                    def dockerRegistry = get_docker_registry()
+                    def dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-${builder}:latest")
+                    
                     if (m.non_cross) {
                         if (builder != 'stretch-arm64') { // TODO qemu buster builder
                             return false
                         }
-                        dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
+                        dockerImage = docker.image("$dockerRegistry/debbox-builder-qemu-stretch-arm64:latest")
                     }
 
                     dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
-                        sh 'pwd'
                         def co_map = checkout scm
-                        sh 'ls -alhi'
                         def url = co_map.GIT_URL
                         def git_args = git_helper.split_url(url)
                         def repository = git_args.repository
@@ -750,7 +757,6 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                         if (is_pr && is_atag) {
                             error 'Unexpected environment, cannot be both PR and TAG'
                         }
-
                         def ref
                         if (is_atag) {
                             ref = TAG_NAME
@@ -772,11 +778,9 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                         print m.upload_info
                         try {
                             bash "make package RELEASE_BUILD=${is_atag} ${extra} 2>&1 | tee make.log"
-                        }
-                        catch (Exception e) {
+                        } catch (Exception e) {
                             throw e
-                        }
-                        finally {
+                        } finally {
                             sh "mkdir -p /root/artifact_dir/${distribution}"
                             sh "cp -rT ${m.dist} /root/artifact_dir/${distribution} || true"
                             sh "mv make.log /root/artifact_dir/${distribution} || true"
@@ -874,22 +878,21 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                 m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
             },
             build_steps: { m ->
-                def username = sh_output("whoami")
-                def uid = sh_output("id -zu $username")
-                def gid = sh_output("id -zg $username")
+                def uid, gid
+                def deleteWsPath
+
+                (uid, gid) = get_ids()
                 sh "mkdir -p ${m.artifact_dir}/${m.artifact_prefix}"
                 m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/${m.artifact_prefix}")
 
-                def deleteWsPath
                 ws("${m.build_dir}") {
                     deleteWsPath = env.WORKSPACE
-                    def dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
-
+                    def dockerRegistry = get_docker_registry()
+                    def dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-stretch-arm64:latest")
+                    dockerImage.pull()
                     dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
-                        sh 'pwd'
                         def co_map = checkout scm
                         sh 'git submodule update --init --recursive'
-                        sh 'ls -alhi'
                         def url = co_map.GIT_URL
                         def git_args = git_helper.split_url(url)
                         def repository = git_args.repository
@@ -946,6 +949,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                             sh "chown $uid:$gid -R /root/artifact_dir"
                         }
                     }
+                    
                 }
                 dir_cleanup("${deleteWsPath}") {
                     echo "cleanup ws ${deleteWsPath}"
@@ -993,21 +997,20 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
             m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
         },
         build_steps: { m ->
-            def username = sh_output("whoami")
-            def uid = sh_output("id -zu $username")
-            def gid = sh_output("id -zg $username")
+            def deleteWsPath
+            def uid, gid
+
+            (uid, gid) = get_ids()
             sh "mkdir -p ${m.artifact_dir}/${m.artifact_prefix}"
             m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/${m.artifact_prefix}")
-
-            def deleteWsPath
+            
             ws("${m.build_dir}") {
                 deleteWsPath = env.WORKSPACE
-                def dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
-
+                def dockerRegistry = get_docker_registry()
+                def dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-stretch-arm64:latest")
+                dockerImage.pull()
                 dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
-                    sh 'pwd'
                     def co_map = checkout scm
-                    sh 'ls -alhi'
                     def url = co_map.GIT_URL
                     def git_args = git_helper.split_url(url)
                     def repository = git_args.repository
@@ -1185,13 +1188,13 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
             m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
         },
         build_steps: { m ->
-            def username = sh_output("whoami")
-            def uid = sh_output("id -zu $username")
-            def gid = sh_output("id -zg $username")
+            def return_status = false
+            def uid, gid
+
+            (uid, gid) = get_ids()
             sh "mkdir -p ${m.artifact_dir}/stretch/arm64"
             m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}/stretch/arm64")
-
-            def return_status = false
+            
             dir("${m.build_dir}/ustd") {
                 stage('checkout source') {
                     sh 'pwd'
@@ -1199,7 +1202,9 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
                     sh 'ls -alhi'
                 }
                 stage('pylint check error') {
-                    def dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
+                    def dockerRegistry = get_docker_registry()
+                    def dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-stretch-arm64:latest")
+                    dockerImage.pull()
                     dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
                         sh 'apt-get update && apt-get install python3-systemd python3-cryptography -y'
                         sh 'pylint3 -E ustd/*.py ustd/*/*.py'
@@ -1208,7 +1213,9 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
             }
 
             dir("${m.build_dir}/debfactory") {
-                dockerImage = docker.image('debbox-builder-qemu-stretch-arm64:latest')
+                def dockerRegistry = get_docker_registry()
+                dockerImage = docker.image("$dockerRegistry/debbox-builder-qemu-stretch-arm64:latest")
+                dockerImage.pull()
                 stage('checkout debfactory helper') {
                     git branch: 'master',
                         credentialsId: 'ken.lu-ssh',
