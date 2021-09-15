@@ -495,9 +495,12 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                     m.additional_store.each { additional_file ->
                                         sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
                                     }
-                                    waitUntil {
-                                        semaphore == total_job
+                                    timeout(time: 2, unit: 'HOURS') {
+                                        waitUntil {
+                                            semaphore == total_job
+                                        }
                                     }
+                                    
                                 }
                                 catch (Exception e) {
                                     // Due to we have the build error, remove all at here
@@ -527,8 +530,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         upload_semaphore = upload_semaphore + 1
                         println "upload_semaphore: $upload_semaphore"
                     }
-                    waitUntil {
-                        upload_semaphore == total_job
+                    timeout(time: 1, unit: 'HOURS') {
+                        waitUntil {
+                            upload_semaphore == total_job
+                        }
                     }
                 }
             },
