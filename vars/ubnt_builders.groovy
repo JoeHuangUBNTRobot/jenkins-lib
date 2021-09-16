@@ -406,7 +406,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 dockerImage = docker.image('debbox-builder-cross-stretch-arm64:latest')
                             }
                             dockerImage.pull()
-                            sh "docker tag $dockerRegistry/debbox-builder-cross-stretch-arm64:latest debbox-builder-cross-stretch-arm64:latest || true"
+                            registryPrefix = dockerRegistry.replace("http://",'')
+                            sh "docker tag $registryPrefix/debbox-builder-cross-stretch-arm64:latest debbox-builder-cross-stretch-arm64:latest || true"
                             def docker_args = get_docker_args(m.docker_artifact_path) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
                             dockerImage.inside(docker_args) {
                                 /*
