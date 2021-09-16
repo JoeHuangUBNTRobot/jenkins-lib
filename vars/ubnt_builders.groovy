@@ -944,6 +944,8 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                             sh "cp -rT ${m.dist} /root/artifact_dir || true"
                             sh "cp -r ${m.dist}/input/*.dtb /root/artifact_dir/dtb || true"
                             sh 'mv make.log /root/artifact_dir'
+                            sh "ln -srf /root/artifact_dir/boot.img /root/artifact_dir/boot_${git_helper.short_sha()}.img"
+                            sh "md5sum /root/artifact_dir/boot.img /root/artifact_dir/dtb/* > /root/artifact_dir/md5sum.txt"
                             sh 'rm -rf /root/artifact_dir/input || true'
                             sh "echo gid=$gid uid:$uid"
                             sh "chown $uid:$gid -R /root/artifact_dir"
@@ -1063,6 +1065,8 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
                         sh "cp ${m.dist} /root/artifact_dir || true"
                         sh 'mv make.log /root/artifact_dir'
                         sh 'rm -rf /root/artifact_dir/input || true'
+                        sh "ln -srf /root/artifact_dir/u-boot-mtk.bin /root/artifact_dir/u-boot-mtk_${git_helper.short_sha()}.bin"
+                        sh "md5sum /root/artifact_dir/u-boot-mtk.bin > /root/artifact_dir/md5sum.txt"
                         sh "echo gid=$gid uid:$uid"
                         sh "chown $uid:$gid -R /root/artifact_dir"
                     }
