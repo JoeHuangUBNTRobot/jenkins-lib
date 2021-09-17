@@ -6,7 +6,7 @@ def get_docker_registry() {
 }
 
 def is_qa_test_branch(branchName) {
-    if (branchName.startsWith("feature/unifi-core") || branchName.startsWith("sustain/unifi-core"))
+    if (branchName == "feature/unifi-core" || branchName.startsWith("sustain/unifi-core-"))
         return true
     return false
 }
