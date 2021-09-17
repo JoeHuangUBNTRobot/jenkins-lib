@@ -5,6 +5,12 @@ def get_docker_registry() {
     return dockerRegistry
 }
 
+def is_qa_test_branch(branchName) {
+    if (branchName.startsWith("feature/unifi-core") || branchName.startsWith("sustain/unifi-core"))
+        return true
+    return false
+}
+
 def get_job_options(String project) {
     def options = [
         debbox_builder: [
@@ -549,7 +555,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                 }
             },
             qa_test_steps: { m->
-                if (m.name.contains('fcd') || !is_tag) {
+                if (m.name.contains('fcd') || (!is_tag && !is_pr && !is_qa_test_branch(BRANCH_NAME))) {
                     return
                 }
                 def url_domain = 'http://tpe-judo.rad.ubnt.com/build'
