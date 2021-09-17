@@ -549,7 +549,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                 }
             },
             qa_test_steps: { m->
-                if (m.name.contains('fcd')) {
+                if (m.name.contains('fcd') || !is_tag) {
                     return
                 }
                 def url_domain = 'http://tpe-judo.rad.ubnt.com/build'
