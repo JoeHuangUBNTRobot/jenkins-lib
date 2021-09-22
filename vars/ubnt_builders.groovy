@@ -21,76 +21,76 @@ def get_job_options(String project) {
         ],
         debfactory_builder:[
             job_artifact_dir: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
-            node: 'fwteam',
+            node: 'debfactory',
             build_archs: ['arm64'],
             upload: true
         ],
         debfactory_non_cross_builder:[
             job_artifact_dir: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
-            node: 'fwteam',
+            node: 'debfactory',
             build_archs: ['arm64'],
             upload: true,
             non_cross: true
         ],
         analytic_report_builder:[
             name: 'analytic_report',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true,
             non_cross: true
         ],
         disk_smart_mon_builder:[
             name: 'disk_smart_mon',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         disk_quota_builder:[
             name: 'disk_quota',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         debbox_base_files_builder:[
             name: 'debbox_base',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         cloudkey_apq8053_initramfs_builder:[
             name: 'cloudkey_apq8053_initramfs',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         ubnt_archive_keyring_builder:[
             name: 'ubnt_archive_keyring',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         ubnt_zram_swap_builder:[
             name: 'ubnt_zram_swap',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         ubnt_tools_builder:[
             name: 'ubnt_tools',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         amaz_alpinev2_boot_builder:[
             name: 'amaz_alpinev2_boot',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         mt7622_boot_builder:[
             name: 'mt7622_boot',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         preload_image_builder:[
             name: 'preload_image',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: true
         ],
         ustd_checker:[
             name: 'ustd',
-            node: 'fwteam',
+            node: 'debfactory',
             upload: false
         ]
     ]
@@ -123,7 +123,7 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
 
     job_options.build_archs.each { arch->
         build_jobs.add([
-            node: job_options.node ?: 'fwteam',
+            node: job_options.node ?: 'debfactory',
             name: 'debfactory',
             dist: "$build_dist",
             resultpath: "build/dist",
@@ -713,7 +713,7 @@ def debpkg(Map job_options, configs=['stretch/all']) {
         }
 
         build_jobs.add([
-            node: job_options.node ?: 'fwteam',
+            node: job_options.node ?: 'debfactory',
             name: job_options.name + "-${builder}",
             artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${builder}",
             dist: job_options.dist ?: 'dist',
@@ -865,7 +865,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
     config.each { k, v->
         (model, hw_ver) = v.split('-')
         build_jobs.add([
-            node: job_options.node ?: 'fwteam',
+            node: job_options.node ?: 'debfactory',
             name: "$model$hw_ver",
             model: model,
             hw_ver: hw_ver,
@@ -988,7 +988,7 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
     verify_required_params('mt7622_boot_builder', job_options, ['name'])
 
     build_jobs.add([
-        node: job_options.node ?: 'fwteam',
+        node: job_options.node ?: 'debfactory',
         name: "mt7622-boot",
         artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
         dist: 'u-boot-mtk.bin',
@@ -1105,7 +1105,7 @@ def preload_image_builder(String productSeries, Map job_options=[:], Map build_s
     echo "build $productSeries"
 
     build_jobs.add([
-        node: job_options.node ?: 'fwteam',
+        node: job_options.node ?: 'debfactory',
         name: job_options.name,
         artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}/arm64",
         execute_order: 1,
@@ -1181,7 +1181,7 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
     verify_required_params('ustd', job_options, ['name'])
 
     build_jobs.add([
-        node: job_options.node ?: 'fwteam',
+        node: job_options.node ?: 'debfactory',
         name: job_options.name,
         artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
         dist: job_options.dist ?: 'build/dist',
