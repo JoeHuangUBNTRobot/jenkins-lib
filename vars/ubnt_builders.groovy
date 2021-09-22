@@ -377,7 +377,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
            println "total_job: $total_job"
         }
         build_jobs.add([
-            node: is_pr ? 'deb-img' : (job_options.node ?: 'debbox'),
+            node: is_pr ? 'debbox-PR' : (job_options.node ?: 'debbox'),
             name: target_map.product,
             resultpath: target_map.resultpath,
             additional_store: target_map.additional_store ?: [],
