@@ -431,7 +431,18 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             *     tag: unifi-cloudkey/v1.1.9 (TAG_NAME)
                             *     branch_name (feature/unifi-core-integration)
                             */
-                            def co_map = checkout scm
+                            def co_map
+                            for(retry = 0; retry < 3; retry++) {
+                                try {
+                                    timeout(time: 5, unit: 'MINUTES') {
+                                        co_map = checkout scm
+                                    }
+                                    break
+                                } catch (e) {
+                                    echo "Timeout during checkout scm"
+                                    sh "rm -rf .git || true"
+                                }
+                            }
                             def url = co_map.GIT_URL
                             def git_args = git_helper.split_url(url)
                             def repository = git_args.repository
