@@ -309,7 +309,8 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                     if (m.upload && m.containsKey('upload_info')) {
                         def upload_prefix = m.upload_info.path.join('/')
                         def latest_prefix = m.upload_info.latest_path.join('/')
-                        ubnt_nas.upload(m.absolute_artifact_dir + '/*' , upload_prefix, latest_prefix, true)
+                        def pkgs_prefix = m.upload_info.pkgs_path.join('/')
+                        ubnt_nas.upload(m.absolute_artifact_dir + '/*' , upload_prefix, latest_prefix, true, pkgs_prefix, 4)
                         if (m.build_record) {
                             def ref_path = m.upload_info.ref_path.join('/')
                             ref_path = "${ubnt_nas.get_nasdir()}/${ref_path}"
