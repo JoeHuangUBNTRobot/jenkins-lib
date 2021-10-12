@@ -945,7 +945,7 @@ def amaz_alpinev2_boot_builder(String build_target, Map job_options=[:], Map bui
                             sh "cp -rT ${m.dist} /root/artifact_dir || true"
                             sh "cp -r ${m.dist}/input/*.dtb /root/artifact_dir/dtb || true"
                             sh 'mv make.log /root/artifact_dir'
-                            sh "ln -srf /root/artifact_dir/boot.img /root/artifact_dir/boot_${git_helper.short_sha()}.img"
+                            sh "ln -srf /root/artifact_dir/boot.img /root/artifact_dir/boot-${git_helper.short_sha()}.img"
                             sh "md5sum /root/artifact_dir/boot.img /root/artifact_dir/dtb/* > /root/artifact_dir/md5sum.txt"
                             sh 'rm -rf /root/artifact_dir/input || true'
                             sh "echo gid=$gid uid:$uid"
@@ -1059,9 +1059,7 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
                         m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
                         print m.upload_info
                         try {
-                            bash "ln -f config-${target} .config"
-                            bash "MENUCONFIG_SAVE_IMMEDIATELY=1 make menuconfig 2>&1 | tee make.log"
-                            bash "make -j8 2>&1 | tee make.log"
+                            bash "BUILD_RELEASE=1 BUILD_DEBUG=0 ./build_ubnt_mt7622.sh ${target} | tee make.log"
                         }
                         catch (Exception e) {
                             throw e
@@ -1071,7 +1069,7 @@ def mt7622_boot_builder(String build_target, Map job_options=[:], Map build_conf
                             sh "cp ${m.dist} /root/artifact_dir || true"
                             sh 'mv make.log /root/artifact_dir'
                             sh 'rm -rf /root/artifact_dir/input || true'
-                            sh "ln -srf /root/artifact_dir/u-boot-mtk.bin /root/artifact_dir/u-boot-mtk_${git_helper.short_sha()}.bin"
+                            sh "ln -srf /root/artifact_dir/u-boot-mtk.bin /root/artifact_dir/u-boot-mtk-${git_helper.short_sha()}.bin"
                             sh "md5sum /root/artifact_dir/u-boot-mtk.bin > /root/artifact_dir/md5sum.txt"
                             sh "echo gid=$gid uid:$uid"
                             sh "chown $uid:$gid -R /root/artifact_dir"
