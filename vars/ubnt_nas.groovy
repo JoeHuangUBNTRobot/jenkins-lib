@@ -85,7 +85,7 @@ def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="", p
                     try {
                         pkgs_path = "$nasdir/$pkgs_path"
                         def wildcard_target = '/*'.multiply(pkgs_link_deep)
-                        sh "for subdir in ${nas_path}${wildcard_target}; do link_prefix=\$(echo \${subdir} | awk -F'/' '{for (i=${pkgs_link_deep - 1}; i>0; i--) printf(\"/\"\$(NF-i))}'); new_pkgs_path=${pkgs_path}\${link_prefix}; mkdir -p \${new_pkgs_path}; ln -srf -t \${new_pkgs_path} \${subdir}; done || true"
+                        sh "for subdir in ${nas_path}${wildcard_target}; do link_prefix=\$(echo \${subdir} | awk -F'/' '{for (i=${pkgs_link_deep - 1}; i>0; i--) printf(\"/\"\$(NF-i))}'); new_pkgs_path=${pkgs_path}\${link_prefix}; mkdir -p \${new_pkgs_path}; ln -srf -t \${new_pkgs_path} \${subdir}; while [ \"\${new_pkgs_path}\" != \"${nas_path}\" ]; do touch -m \${new_pkgs_path}; new_pkgs_path=\$(dirname \${new_pkgs_path}); done; done || true"
                     } catch (err) {
                         println "${err}"
                     }
