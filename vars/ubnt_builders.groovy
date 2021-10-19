@@ -367,6 +367,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
     def is_atag = env.getProperty('TAG_NAME') != null
     def build_product = build_series[productSeries]
     def build_jobs = []
+    def slackResp = slackSend(channel: 'mcagent-classroom', message: "[STARTED] ${env.BUILD_URL}", color: "good")
+    def slackThreadId = slackResp.threadId
 
     build_product.each { name, target_map ->
         if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix)) {
@@ -630,7 +632,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     	return
                     }
 
-                    def params = "fw_url=${url}"
+                    def params = "fw_url=${url}&slack_channel=${slackThreadId}"
                     def job = null
                     if (name == 'UNVR') {
                         job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UNVR_smoke_entry",
