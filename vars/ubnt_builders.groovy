@@ -632,7 +632,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     	return
                     }
 
-                    def params = "fw_url=${url}&slack_channel=${slackThreadId}"
+                    def params = "fw_url=${url}\nslack_channel=${slackThreadId}"
                     def job = null
                     if (name == 'UNVR') {
                         job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UNVR_smoke_entry",
