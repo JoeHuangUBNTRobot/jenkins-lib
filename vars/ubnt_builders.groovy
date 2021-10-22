@@ -371,8 +371,12 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
     def slackThreadId = slackResp.threadId
 
     build_product.each { name, target_map ->
-        if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix)) {
-            return
+        
+        if (is_tag && productSeries == 'UNIFICORE') {
+            def current_tag_prefix = TAG_NAME.tokenize('/')[0]
+            if (current_tag_prefix != target_map.tag_prefix) {
+                return
+            }
         }
         lock("debbox_builder-${env.BUILD_NUMBER}") {
            total_job = total_job + 1
