@@ -631,23 +631,30 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         }
                     }
 
-                    // skip UDMPSE and UDW test
-                    if (name == 'UDMPROSE' || name == 'UDW' || name == 'UDMPRO' || name == 'UDWPRO' || name == 'UDMLITE' || name == 'UDK') {
+                    // skip UDW test
+                    if (name == 'UDW' || name == 'UDMPRO' || name == 'UDWPRO' || name == 'UDMLITE' || name == 'UDK') {
                     	return
                     }
 
                     def params = "fw_url=${url}\nslack_channel=${slackThreadId}"
+                    def isBlockBuild = false
+                    def auth = CredentialsAuth(credentials: 'jenkins8787-trigger')
                     def job = null
                     if (name == 'UNVR') {
                         job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UNVR_smoke_entry",
-                                               blockBuildUntilComplete: false,
+                                               blockBuildUntilComplete: isBlockBuild,
                                                parameters: params,
-                                               auth: CredentialsAuth(credentials: 'jenkins8787-trigger')
+                                               auth: auth
+                    } else if (name == 'UDMPROSE') {
+                        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UDMSE_smoke_test",
+                                               blockBuildUntilComplete: isBlockBuild,
+                                               parameters: params,
+                                               auth: auth
                     } else {
                         job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/${name}_smoke_test",
-                                               blockBuildUntilComplete: false,
+                                               blockBuildUntilComplete: isBlockBuild,
                                                parameters: params,
-                                               auth: CredentialsAuth(credentials: 'jenkins8787-trigger')
+                                               auth: auth
                     }
                     
                     // currentBuild.result = job.getBuildResult().toString()
