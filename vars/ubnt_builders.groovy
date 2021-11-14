@@ -367,7 +367,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
     def is_atag = env.getProperty('TAG_NAME') != null
     def build_product = build_series[productSeries]
     def build_jobs = []
-    def slackResp = slackSend(channel: 'mcagent-classroom', message: "[STARTED] ${env.BUILD_URL}", color: "good")
+    def slackResp = slackSend(channel: 'unifi-os-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good")
     def slackThreadId = slackResp.threadId
 
     build_product.each { name, target_map ->
