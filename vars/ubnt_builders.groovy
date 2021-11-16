@@ -6,7 +6,7 @@ def get_docker_registry() {
 }
 
 def is_qa_test_branch(branchName) {
-    if (branchName == "master" || branchName.startsWith("sustain/unifi-core-"))
+    if (branchName == "master" || branchName == "stable/2.3" || branchName.startsWith("sustain/unifi-core-"))
         return true
     return false
 }
@@ -573,6 +573,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             },
             qa_test_steps: { m->
                 if (m.name.contains('fcd') || (!is_tag && !is_pr && !is_qa_test_branch(BRANCH_NAME))) {
+                    echo "Skip QA test ..."
                     return
                 }
                 def url_domain = 'http://tpe-judo.rad.ubnt.com/build'
@@ -631,8 +632,9 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         }
                     }
 
-                    // skip UDW test
-                    if (name == 'UDW' || name == 'UDMPRO' || name == 'UDWPRO' || name == 'UDMLITE' || name == 'UDK') {
+                    // skip UDW, UDWPRO, UDMPRO, UDK test
+                    if (name == 'UDW' || name == 'UDMPRO' || name == 'UDWPRO' || name == 'UDK') {
+                        echo "Skip un-support model ..."
                     	return
                     }
 
