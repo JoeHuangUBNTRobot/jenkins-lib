@@ -25,12 +25,9 @@ class PkgMkInfo:
         self.arch = arch
         self.deb_name = ''
         self.series = series
-        self.dist = dist
+        self.dist = dist  # Useless remove this in the future
         self.md5sum_list = dict()
         self.multi_var_name = multi_var_name
-
-    def is_multi(self):
-        return '.' not in self.md5sum_list
 
     def add_md5sum(self, multi_name, deb_file):
         self.deb_name = deb_file.name
@@ -44,66 +41,43 @@ class PkgMkInfo:
         variable_pkg_name = '{}_PKG_NAME'.format(variable_name_prefix)
         variable_pkg_version = '{}_VERSION'.format(variable_name_prefix)
         variable_base_url = '{}_BASEURL'.format(variable_name_prefix)
-        variable_md5 = '{}_MD5'.format(variable_name_prefix)
 
         arch = '$(_arch)'
         if self.arch == 'all':
             arch = 'all'
 
-        if not self.is_multi():
-            makefile.write('# {}\n\n'.format('/'.join([
-                base_url,
-                self.series,
-                self.dist,
-                self.arch,
-                self.version,
-                self.deb_name,
-            ])))
-        else:
-            makefile.write('# {}\n\n'.format('/'.join([
-                base_url,
-                self.series,
-                self.dist,
-                self.arch,
-                self.version,
-                next(iter(self.md5sum_list)),
-                self.deb_name,
-            ])))
+        makefile.write('# {}\n\n'.format('/'.join([
+            base_url,
+            self.series,
+            next(iter(self.md5sum_list)),
+            self.deb_name,
+        ])))
         makefile.write('{}:={}\n'.format(variable_pkg_name, self.name))
         makefile.write('{}:={}\n\n'.format(variable_pkg_version, self.version))
 
-        if not self.is_multi():
-            base_url = '/'.join([
-                base_url,
-                self.series,
-                '$(_distro)',
-                arch,
-                '$({})',
-            ]).format(variable_pkg_version)
-            makefile.write('{}:={}\n'.format(variable_md5,
-                                             self.md5sum_list['.']))
-        else:
-            base_url = '/'.join([
-                base_url,
-                self.series,
-                '$(_distro)',
-                arch,
-                '$({})',
-                '$({})',
-            ]).format(variable_pkg_version, self.multi_var_name)
-            for multi_name in self.md5sum_list:
-                makefile.write('{}_{}_MD5:={}\n'.format(
-                    variable_name_prefix, multi_name,
-                    self.md5sum_list[multi_name]))
+        base_url = '/'.join([
+            base_url,
+            self.series,
+            '$(_distro)',
+            '$({})',
+        ]).format(self.multi_var_name)
+        for multi_name, md5sum in self.md5sum_list.items():
+            makefile.write('{}_{}_MD5:={}\n'.format(
+                variable_name_prefix, multi_name.replace('/', '_'), md5sum))
 
         makefile.write('{}:={}\n\n'.format(variable_base_url, base_url))
         makefile.write('PKG_FILE:=$({})_$({})_{}.deb\n'.format(
             variable_pkg_name, variable_pkg_version, arch))
-        if not self.is_multi():
-            makefile.write('PKG_FILE_MD5SUM:=$({})\n'.format(variable_md5))
+
+        if self.multi_var_name:
+            makefile.write(
+                'PKG_FILE_MD5SUM:=$(value {}_$(_distro)_$({})_MD5)\n'.format(
+                    variable_name_prefix, self.multi_var_name))
         else:
-            makefile.write('PKG_FILE_MD5SUM:=$(value {}_$({})_MD5)\n'.format(
-                variable_name_prefix, self.multi_var_name))
+            makefile.write(
+                'PKG_FILE_MD5SUM:=$(value {}_$(_distro)_MD5)\n'.format(
+                    variable_name_prefix, self.multi_var_name))
+
         makefile.write('PKG_BASEURL:=$({})\n'.format(variable_base_url))
 
 
@@ -195,7 +169,7 @@ def arrange_directory(args):
         multi_name = str(relpath.parent)
         multi_var_name = get_multi_var_name(pkg_series)
 
-        dst_path = args.directory / pkg_series / args.dist / pkg_arch / pkg_verion / relpath
+        dst_path = args.directory / pkg_series / relpath
 
         if f.suffix == '.deb':
             if pkg_name not in pkg_info_list:
