@@ -4,13 +4,16 @@ def notification(String buildResult, slackBody  = '') {
         title_msg += ' was successful\n'
         title_msg += slackBody
         title_msg += '\ncc <!subteam^S02FLKD4Y1M>\n'
-        slackSend color: 'good', message: "${title_msg}"
+        // slackSend color: 'good', message: "${title_msg}"
+        slackSend(channel: "unifi-os-firmware-dev", color: 'good', message: "${title_msg}")
     } else {
         title_msg += ' was failed\n'
         title_msg += slackBody
         title_msg += '\ncc <!subteam^S02FLKD4Y1M>\n'
-        slackSend color: 'danger', message: "${title_msg}"
+        // slackSend color: 'danger', message: "${title_msg}"
+        slackSend(channel: "unifi-os-firmware-dev", color: 'danger', message: "${title_msg}")
     }
+
 }
 
 def fw_release_changelog() {
