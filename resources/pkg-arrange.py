@@ -46,10 +46,12 @@ class PkgMkInfo:
         if self.arch == 'all':
             arch = 'all'
 
+        sorted_md5_list = sorted(self.md5sum_list.items())
+
         makefile.write('# {}\n\n'.format('/'.join([
             base_url,
             self.series,
-            next(iter(self.md5sum_list)),
+            sorted_md5_list[0][0],
             self.deb_name,
         ])))
         makefile.write('{}:={}\n'.format(variable_pkg_name, self.name))
@@ -61,7 +63,7 @@ class PkgMkInfo:
             '$(_distro)',
             '$({})',
         ]).format(self.multi_var_name)
-        for multi_name, md5sum in self.md5sum_list.items():
+        for multi_name, md5sum in sorted_md5_list:
             makefile.write('{}_{}_MD5:={}\n'.format(
                 variable_name_prefix, multi_name.replace('/', '_'), md5sum))
 
