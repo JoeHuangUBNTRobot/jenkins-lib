@@ -81,7 +81,7 @@ def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="", p
             if (link_subdir) {
                 sh "mkdir -p $latest_path"
                 sh "for subdir in $nas_path/*; do ln -srf -t $latest_path \$subdir; done"
-                if (pkgs_path) {
+                if (false) {
                     try {
                         pkgs_path = "$nasdir/$pkgs_path"
                         def wildcard_target = '/*'.multiply(pkgs_link_deep)
