@@ -50,7 +50,7 @@ def get_nasdomain() {
     return 'http://tpe-judo.rad.ubnt.com/build'
 }
 
-def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="", pkgs_link_deep = 1) {
+def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="") {
     def nasinfo = [:]
     def nasdomain = get_nasdomain()
     def nasdir = get_nasdir()
@@ -81,11 +81,12 @@ def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="", p
             if (link_subdir) {
                 sh "mkdir -p $latest_path"
                 sh "for subdir in $nas_path/*; do ln -srf -t $latest_path \$subdir; done"
-                if (false) {
+                if (pkgs_path) {
                     try {
                         pkgs_path = "$nasdir/$pkgs_path"
-                        def wildcard_target = '/*'.multiply(pkgs_link_deep)
-                        sh "for subdir in ${nas_path}${wildcard_target}; do link_prefix=\$(echo \${subdir} | awk -F'/' '{for (i=${pkgs_link_deep - 1}; i>0; i--) printf(\"/\"\$(NF-i))}'); new_pkgs_path=${pkgs_path}\${link_prefix}; mkdir -p \${new_pkgs_path}; ln -srf -t \${new_pkgs_path} \${subdir}; while [ \"\${new_pkgs_path}\" != \"${pkgs_path}\" ]; do touch -m \${new_pkgs_path}; new_pkgs_path=\$(dirname \${new_pkgs_path}); done; done || true"
+                        writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
+                        writeFile file:'link-creator.py', text:libraryResource("link-creator.py")
+                        sh "python3 ./link-creator.py --src ${nas_path} --trg ${pkgs_path}"
                     } catch (err) {
                         println "${err}"
                     }

@@ -156,17 +156,23 @@ def get_multi_var_name(pkg_name):
     return multi_var_name_map.get(pkg_name, None)
 
 
+def deb_pkg_name_parser(name):
+    tokens = re.split(r'[._]', name)
+    pkg_name = tokens[0]
+    pkg_verion = '.'.join(tokens[1:-1])
+    pkg_arch = tokens[-1]
+    pkg_series = get_pkg_series(pkg_name)
+    return pkg_name, pkg_verion, pkg_arch, pkg_series
+
+
 def arrange_directory(args):
     file_list = [f for f in args.directory.rglob('*')]
     for f in file_list:
         if filter_files_not_handled(f, args):
             continue
 
-        tokens = re.split(r'[._]', str(f.stem))
-        pkg_name = tokens[0]
-        pkg_verion = '.'.join(tokens[1:-1])
-        pkg_arch = tokens[-1]
-        pkg_series = get_pkg_series(pkg_name)
+        pkg_name, pkg_verion, pkg_arch, pkg_series = deb_pkg_name_parser(str(f.stem))
+
         relpath = f.relative_to(args.directory)
         multi_name = str(relpath.parent)
         multi_var_name = get_multi_var_name(pkg_series)
