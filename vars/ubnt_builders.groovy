@@ -16,7 +16,9 @@ def get_job_options(String project) {
         debbox_builder: [
             job_artifact_dir: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
             node: 'debbox',
-            upload: true
+            upload: true,
+            project_cache: true,
+            project_name: 'debbox'
         ],
         debfactory_builder:[
             job_artifact_dir: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
@@ -97,7 +99,18 @@ def get_job_options(String project) {
     return options.get(project, [:])
 }
 
-def get_docker_args(artifact_dir) {
+def get_docker_args(artifact_dir, project_cache=false, project_name='debbox') {
+    if(project_cache) {
+        cache_dir = ubnt_nas.get_nasdir() + "/.project-cache"
+        return '-u 0 --privileged=true ' +
+            "-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " +
+            "-v ${artifact_dir}:/root/artifact_dir:rw " +
+            '-v /ccache:/ccache:rw ' +
+            "-v ${cache_dir}/${project_name}:${cache_dir}/${project_name}:ro " +
+            '--env CCACHE_DIR=/ccache ' +
+            '--env PATH=/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+    }
     return '-u 0 --privileged=true ' +
         "-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " +
         "-v ${artifact_dir}:/root/artifact_dir:rw " +
@@ -391,6 +404,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
             pack_bootloader: target_map.pack_bootloader ?: 'yes',
             build_status:false,
+            project_cache: (job_options.project_cache ?: false),
+            project_name: (job_options.project_name ?: 'debbox'),
             upload: job_options.upload ?: false,
             pre_checkout_steps: { m->
                 // do whatever you want before checkout step
@@ -417,7 +432,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-stretch-arm64:latest")
                         }
                         dockerImage.pull()
-                        def docker_args = get_docker_args(m.docker_artifact_path) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
+                        def docker_args = get_docker_args(m.docker_artifact_path, m.project_cache, m.project_name) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
                         dockerImage.inside(docker_args) {
                             /*
                             * tag build var:
