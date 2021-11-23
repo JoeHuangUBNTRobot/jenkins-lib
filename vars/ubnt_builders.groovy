@@ -99,14 +99,18 @@ def get_job_options(String project) {
     return options.get(project, [:])
 }
 
+def get_project_cache_path(project_name) {
+    return "${ubnt_nas.get_nasdir()}/.project-cache/${project_name}"
+}
+
 def get_docker_args(artifact_dir, project_cache=false, project_name='debbox') {
     if(project_cache) {
-        cache_dir = ubnt_nas.get_nasdir() + "/.project-cache"
+        def project_cache_path = get_project_cache_path(project_name)
         return '-u 0 --privileged=true ' +
             "-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " +
             "-v ${artifact_dir}:/root/artifact_dir:rw " +
             '-v /ccache:/ccache:rw ' +
-            "-v ${cache_dir}/${project_name}:${cache_dir}/${project_name}:ro " +
+            "-v ${project_cache_path}:${project_cache_path}:ro " +
             '--env CCACHE_DIR=/ccache ' +
             '--env PATH=/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
@@ -453,6 +457,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             *     branch_name (feature/unifi-core-integration)
                             */
                             def co_map
+                            def project_cache_path = get_project_cache_path(m.project_name)
+                            scm.extensions = scm.extensions + [[$class: 'CloneOption', reference: "${project_cache_path}"]]
                             for(retry = 0; retry < 3; retry++) {
                                 try {
                                     timeout(time: 5, unit: 'MINUTES') {
