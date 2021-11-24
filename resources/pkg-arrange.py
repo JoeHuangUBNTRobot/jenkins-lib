@@ -61,8 +61,11 @@ class PkgMkInfo:
             base_url,
             self.series,
             '$(_distro)',
-            '$({})',
-        ]).format(self.multi_var_name)
+        ])
+
+        if self.multi_var_name:
+            base_url += '/$({})'.format(self.multi_var_name)
+
         for multi_name, md5sum in sorted_md5_list:
             makefile.write('{}_{}_MD5:={}\n'.format(
                 variable_name_prefix, multi_name.replace('/', '_'), md5sum))
@@ -78,7 +81,7 @@ class PkgMkInfo:
         else:
             makefile.write(
                 'PKG_FILE_MD5SUM:=$(value {}_$(_distro)_MD5)\n'.format(
-                    variable_name_prefix, self.multi_var_name))
+                    variable_name_prefix))
 
         makefile.write('PKG_BASEURL:=$({})\n'.format(variable_base_url))
 
