@@ -36,11 +36,11 @@ class PkgMkInfo:
             arch = 'all'
 
         makefile.write('# {}\n\n'.format('/'.join(
-            [base_url, self.dist, self.arch, self.deb_name])))
+            [base_url, self.dist, self.deb_name])))
         makefile.write('{}:={}\n'.format(variable_pkg_name, self.name))
         makefile.write('{}:={}\n\n'.format(variable_pkg_version, self.version))
 
-        base_url = '/'.join([base_url, '$(_distro)', arch])
+        base_url = '/'.join([base_url, '$(_distro)'])
         makefile.write('{}:={}\n'.format(variable_md5, self.md5sum_list))
         makefile.write('{}:={}\n\n'.format(variable_base_url, base_url))
 
@@ -92,6 +92,7 @@ def remove_empty_dir(path, dry):
                     has_empty = True
                     d.rmdir()
 
+
 # a.k.a not greater or equals to
 def compare_version_less(new_version_str, latest_mkfile):
     if not latest_mkfile.is_file():
@@ -137,7 +138,7 @@ def arrange_directory(args):
         pkg_verion = '.'.join(tokens[1:-2])
         pkg_arch = tokens[-2]
 
-        dst_path = args.directory / args.dist / pkg_arch
+        dst_path = args.directory / args.dist
 
         if f.suffix == '.deb':
             if pkg_name not in pkg_info_list:
