@@ -743,7 +743,7 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                         }
                         dockerImage = docker.image("$dockerRegistry/debbox-builder-qemu-stretch-arm64:latest")
                     }
-
+                    dockerImage.pull()
                     dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
                         def co_map = checkout scm
                         def url = co_map.GIT_URL
@@ -1232,6 +1232,7 @@ def ustd_checker(String productSeries, Map job_options=[:], Map build_series=[:]
                 }
 
                 stage('build deb package') {
+                    dockerImage.pull()
                     dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
                         try {
                             bash 'make ARCH=arm64 DIST=stretch BUILD_DEPEND=yes ustd 2>&1 | tee make.log'
