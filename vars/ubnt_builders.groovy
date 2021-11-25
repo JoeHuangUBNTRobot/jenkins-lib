@@ -453,8 +453,9 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             *     branch_name (feature/unifi-core-integration)
                             */
                             def co_map
-                            def cache_path = "${project_cache_updater.get_project_cache_dir()}/${m.project_cache_location}"
-                            scm.extensions = scm.extensions + [[$class: 'CloneOption', reference: "${cache_path}"]]
+                            // open it when we have method to modify the CloneOption without affect others option
+                            // def cache_path = "${project_cache_updater.get_project_cache_dir()}/${m.project_cache_location}"
+                            // scm.extensions = scm.extensions + [[$class: 'CloneOption', reference: "${cache_path}"]]
                             for(retry = 0; retry < 3; retry++) {
                                 try {
                                     timeout(time: 5, unit: 'MINUTES') {
