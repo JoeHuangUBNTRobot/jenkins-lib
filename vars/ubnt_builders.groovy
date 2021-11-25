@@ -18,7 +18,7 @@ def get_job_options(String project) {
             node: 'debbox',
             upload: true,
             project_cache: true,
-            project_name: 'debbox'
+            project_cache_location: 'debbox.git'
         ],
         debfactory_builder:[
             job_artifact_dir: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
@@ -99,14 +99,14 @@ def get_job_options(String project) {
     return options.get(project, [:])
 }
 
-def get_docker_args(artifact_dir, project_cache=false, project_name='debbox') {
+def get_docker_args(artifact_dir, project_cache=false, project_cache_location='debbox.git') {
     if(project_cache) {
-        cache_dir = ubnt_nas.get_nasdir() + "/.project-cache"
+        cache_dir = project_cache_updater.get_project_cache_dir()
         return '-u 0 --privileged=true ' +
             "-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " +
             "-v ${artifact_dir}:/root/artifact_dir:rw " +
             '-v /ccache:/ccache:rw ' +
-            "-v ${cache_dir}/${project_name}:${cache_dir}/${project_name}:ro " +
+            "-v ${cache_dir}/${project_cache_location}:${cache_dir}/${project_cache_location}:ro " +
             '--env CCACHE_DIR=/ccache ' +
             '--env PATH=/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
@@ -405,7 +405,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             pack_bootloader: target_map.pack_bootloader ?: 'yes',
             build_status:false,
             project_cache: (job_options.project_cache ?: false),
-            project_name: (job_options.project_name ?: 'debbox'),
+            project_cache_location: (job_options.project_cache_location ?: 'debbox.git'),
             upload: job_options.upload ?: false,
             pre_checkout_steps: { m->
                 // do whatever you want before checkout step
@@ -432,7 +432,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-stretch-arm64:latest")
                         }
                         dockerImage.pull()
-                        def docker_args = get_docker_args(m.docker_artifact_path, m.project_cache, m.project_name) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
+                        def docker_args = get_docker_args(m.docker_artifact_path, m.project_cache, m.project_cache_location) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
                         dockerImage.inside(docker_args) {
                             /*
                             * tag build var:
@@ -453,6 +453,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             *     branch_name (feature/unifi-core-integration)
                             */
                             def co_map
+                            def cache_path = "${project_cache_updater.get_project_cache_dir()}/${m.project_cache_location}"
+                            scm.extensions = scm.extensions + [[$class: 'CloneOption', reference: "${cache_path}"]]
                             for(retry = 0; retry < 3; retry++) {
                                 try {
                                     timeout(time: 5, unit: 'MINUTES') {
