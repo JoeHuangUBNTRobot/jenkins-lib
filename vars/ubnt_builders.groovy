@@ -517,8 +517,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
                             print m.upload_info
                             try {
+                                def kcache = "${project_cache_updater.get_project_cache_dir()}/debbox-kernel.git"
+                                println "kcache: $kcache"
                                 withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
-                                    bash "AWS_PROFILE=default PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+                                    bash "AWS_PROFILE=default GITCACHE=${kcache} PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
                                 }
                                 lock("debbox_builder-${env.BUILD_NUMBER}") {
                                     semaphore = semaphore + 1
