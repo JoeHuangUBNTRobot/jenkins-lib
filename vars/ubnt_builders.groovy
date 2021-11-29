@@ -99,9 +99,11 @@ def get_job_options(String project) {
 }
 
 def get_docker_args(artifact_dir) {
+    def cache_dir = project_cache_updater.get_project_cache_dir()
     return '-u 0 --privileged=true ' +
         "-v $HOME/.jenkinbuild/.ssh:/root/.ssh:ro " +
         "-v ${artifact_dir}:/root/artifact_dir:rw " +
+        "-v ${cache_dir}:${cache_dir}:ro " +
         '-v /ccache:/ccache:rw ' +
         '--env CCACHE_DIR=/ccache ' +
         '--env PATH=/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
@@ -260,8 +262,10 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                             dockerImage.pull()
                             dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
                                 def build_targets = buildPackages.join(' ')
+                                def debbox_cache = "${project_cache_updater.get_project_cache_dir()}/debbox.git"
+                                def kernel_cache = "${project_cache_updater.get_project_cache_dir()}/debbox-kernel.git"
                                 try {
-                                    sh "make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes ${build_targets} 2>&1"
+                                    sh "DEBBOX_CACHE=${debbox_cache} KERNEL_CACHE=${kernel_cache} make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes ${build_targets} 2>&1"
 
                                     def upload_prefix = m.upload_info.path.join('/')
 
