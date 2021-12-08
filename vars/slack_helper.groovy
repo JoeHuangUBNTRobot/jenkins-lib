@@ -3,15 +3,15 @@ def notification(String buildResult, slackBody  = '') {
     if (buildResult == 'SUCCESS') {
         title_msg += ' was successful\n'
         title_msg += slackBody
-        title_msg += '\ncc <!subteam^S02FLKD4Y1M>\n'
+        // title_msg += '\ncc <!subteam^S02FLKD4Y1M>\n'
         // slackSend color: 'good', message: "${title_msg}"
-        slackSend(channel: "unifi-os-firmware-dev", color: 'good', message: "${title_msg}")
+        slackSend(channel: "unifi-os-firmware-smoke", color: 'good', message: "${title_msg}")
     } else {
         title_msg += ' was failed\n'
         title_msg += slackBody
-        title_msg += '\ncc <!subteam^S02FLKD4Y1M>\n'
+        // title_msg += '\ncc <!subteam^S02FLKD4Y1M>\n'
         // slackSend color: 'danger', message: "${title_msg}"
-        slackSend(channel: "unifi-os-firmware-dev", color: 'danger', message: "${title_msg}")
+        slackSend(channel: "unifi-os-firmware-smoke", color: 'danger', message: "${title_msg}")
     }
 
 }
