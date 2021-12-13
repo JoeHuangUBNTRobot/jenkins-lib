@@ -118,16 +118,16 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
     def build_jobs = []
     verify_required_params('debfactory_builder', job_options, [ 'build_archs' ])
     echo "build $productSeries"
-    def build_dist = 'stretch'
+    def build_dist = ['stretch']
     if (job_options.containsKey('dist')) {
-        build_dist = job_options.dist
+        build_dist = job_options.dist.class == String ? [job_options.dist] : job_options.dist
     }
 
     job_options.build_archs.each { arch->
         build_jobs.add([
             node: job_options.node ?: 'debfactory',
             name: 'debfactory',
-            dist: "$build_dist",
+            dist: build_dist,
             resultpath: "build/dist",
             execute_order: 1,
             artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
@@ -138,7 +138,9 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
             non_cross: job_options.non_cross ?: false,
             build_steps: { m->
                 def uid, gid
-                def buildPackages = []
+                if (m.buildPackages == null) {
+                    m.buildPackages = [:]
+                }
                 (uid, gid) = get_ids()
                 sh 'export'
                 stage ("checkout $m.name") {
@@ -229,17 +231,21 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                         }
                         print pkg_tools_params
 
-                        if (m.non_cross) {
-                            sh_output("./pkg-tools.py -nc -r ${pkg_tools_params}").tokenize('\n').each {
-                                buildPackages << it
+                        m.dist.each { d ->
+                            def b_pkg = []
+                            String pkg_tools_cmd = "./pkg-tools.py ${m.non_cross ? '-nc' : ''}"
+                            // TODO "dist" judgement can be removed in the future
+                            def rc = sh script: "./pkg-tools.py -h | grep dist", returnStatus:true
+                            if (rc == 0) {
+                                pkg_tools_cmd += " -d ${d}"
                             }
-                        } else {
-                            sh_output("./pkg-tools.py -r ${pkg_tools_params}").tokenize('\n').each {
-                                buildPackages << it
+                            pkg_tools_cmd += " -r ${pkg_tools_params}"
+                            sh_output(pkg_tools_cmd).tokenize('\n').each {
+                                b_pkg << it
                             }
+                            m.buildPackages[d] = b_pkg
+                            println "Packages (${d}) to be built: ${b_pkg}"
                         }
-                        m.buildPackages = buildPackages
-                        println "Packages to be built: $buildPackages"
 
                         sh 'ls -lahi'
                         println "resultpath: $m.resultpath"
@@ -247,50 +253,62 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                     }
                 }
                 stage("build $m.name") {
-                    if (buildPackages.size() == 0) {
-                        dir_cleanup("$m.build_dir") {
-                        }
-                        return
-                    }
                     dir_cleanup("$m.build_dir") {
+                        m.build_status = true
                         try {
-                            def dockerRegistry = get_docker_registry()
-                            def dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-${m.dist}-arm64:latest")
-                            if (m.non_cross) {
-                                dockerImage = docker.image("$dockerRegistry/debbox-builder-qemu-${m.dist}-arm64:latest")
-                            }
-                            dockerImage.pull()
-                            dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
-                                def build_targets = buildPackages.join(' ')
-                                def debbox_cache = "${project_cache_updater.get_project_cache_dir()}/debbox.git"
-                                def kernel_cache = "${project_cache_updater.get_project_cache_dir()}/debbox-kernel.git"
-                                try {
-                                    sh "DEBBOX_CACHE=${debbox_cache} KERNEL_CACHE=${kernel_cache} make ARCH=$m.arch DIST=$m.dist BUILD_DEPEND=yes ${build_targets} 2>&1"
-
-                                    def upload_prefix = m.upload_info.path.join('/')
-
-                                    // Intentionally use .makefile to avoid uploading to nas job dir
-                                    sh "mkdir -p /root/artifact_dir/.makefile"
-                                    writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
-                                    sh "python3 ./pkg-arrange.py -o /root/artifact_dir/.makefile -d ${m.dist} -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ${m.resultpath}/"
-                                    buildPackages.each { pkg ->
-                                        pkg = pkg.replaceAll('-dev$|-dbgsym$','')
-                                        sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} /root/artifact_dir/"
+                            m.dist.each { d ->
+                                if (m.buildPackages[d].size() == 0) {
+                                    return
+                                }
+                                def dockerRegistry = get_docker_registry()
+                                def dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-${d}-arm64:latest")
+                                if (m.non_cross) {
+                                    dockerImage = docker.image("$dockerRegistry/debbox-builder-qemu-${d}-arm64:latest")
+                                }
+                                dockerImage.pull()
+                                dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
+                                    def build_targets = m.buildPackages[d].join(' ')
+                                    def debbox_cache = "${project_cache_updater.get_project_cache_dir()}/debbox.git"
+                                    def kernel_cache = "${project_cache_updater.get_project_cache_dir()}/debbox-kernel.git"
+                                    try {
+                                        sh "DEBBOX_CACHE=${debbox_cache} KERNEL_CACHE=${kernel_cache} make ARCH=$m.arch DIST=${d} BUILD_DEPEND=yes ${build_targets} 2>&1"
+                                    }
+                                    catch (Exception e) {
+                                        throw e
+                                    } finally {
+                                        sh "echo gid=$gid uid:$uid"
+                                        sh "chown $uid:$gid -R /root/artifact_dir"
+                                        sh "chown $uid:$gid -R ./"
                                     }
                                 }
-                                catch (Exception e) {
-                                    throw e
-                                } finally {
-                                    sh 'make distclean 2>&1'
-                                    sh "echo gid=$gid uid:$uid"
-                                    sh "chown $uid:$gid -R /root/artifact_dir"
-                                }
-                                m.build_status = true
                             }
-
                         }
                         catch (Exception e) {
                             m.build_status = false
+                            print e
+                            throw e
+                        }
+                        try {
+                            def upload_prefix = m.upload_info.path.join('/')
+                            def artifact_dir = m.absolute_artifact_dir
+
+                            // Intentionally use .makefile to avoid uploading to nas job dir
+                            sh "mkdir -p ${artifact_dir}/.makefile"
+                            writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
+                            sh "python3 ./pkg-arrange.py -o ${artifact_dir}/.makefile -u ${ubnt_nas.get_nasdomain()}/${upload_prefix} ./${m.resultpath}/"
+
+                            def b_pkg = []
+                            m.buildPackages.each { key, value ->
+                                b_pkg += value
+                            }
+                            b_pkg.each { pkg ->
+                                pkg = pkg.replaceAll('-dev$|-dbgsym$','')
+                                sh "test ! -d ${m.resultpath}/${pkg} || cp -rf ${m.resultpath}/${pkg} ${artifact_dir}"
+                            }
+                        }
+                        catch (Exception e) {
+                            m.build_status = false
+                            print e
                             throw e
                         }
                         finally {
@@ -301,7 +319,11 @@ def debfactory_builder(String productSeries, Map job_options=[:], Map build_seri
                 }
             },
             archive_steps: { m->
-                if (m.buildPackages.size() == 0) {
+                def b_pkg = []
+                m.buildPackages.each { key, value ->
+                    b_pkg += value
+                }
+                if (b_pkg.size() == 0) {
                     dir_cleanup("$m.build_dir") {
                     }
                     return
