@@ -8,24 +8,22 @@ import os
 import hashlib
 from pathlib import PosixPath
 
-spcial_pkg_series = {
-    'ustd': 'ustd',
-    'ustd-ro': 'ustd',
-    'ustd-naked': 'ustd',
-    'ustd-stub': 'ustd',
-    'devreg-mt7622': 'devreg',
-    'devreg-al324': 'devreg',
-}
+# pattern > repace group index
+pkg_series_pattern = [
+    (re.compile(r'(ustd).*'), 1),
+    (re.compile(r'(devreg).*'), 1),
+    (re.compile(r'.*?(base-files)'), 1),
+    (re.compile(r'(.*?)(-dev|-dbgsym)'), 1),
+]
 
 
 class PkgMkInfo:
-    def __init__(self, dist, series, name, version, arch, multi_var_name):
+    def __init__(self, series, name, version, arch, multi_var_name):
         self.name = name
         self.version = version
         self.arch = arch
         self.deb_name = ''
         self.series = series
-        self.dist = dist  # Useless remove this in the future
         self.md5sum_list = dict()
         self.multi_var_name = multi_var_name
 
@@ -129,8 +127,11 @@ def remove_empty_dir(path, dry):
 # Remove suffix -<token> and let other packages with same prefix as same package series
 # e.g. (libubnt, libubnt-dev) (ustd, ustd-ro, ustd-naked)
 def get_pkg_series(pkg_name):
-    return spcial_pkg_series.get(pkg_name,
-                                 re.sub(r'(-dev|-dbgsym)', '', pkg_name))
+    for pattern, group in pkg_series_pattern:
+        m = pattern.match(pkg_name)
+        if m:
+            return m.group(group)
+    return pkg_name
 
 
 multi_var_name_map = None
@@ -155,7 +156,10 @@ def parse_pkg_multi_var(pkg_list):
 def get_multi_var_name(pkg_name):
     global multi_var_name_map
     if multi_var_name_map is None:
-        multi_var_name_map = parse_pkg_multi_var(get_pkg_list())
+        try:
+            multi_var_name_map = parse_pkg_multi_var(get_pkg_list())
+        except:
+            return None
     return multi_var_name_map.get(pkg_name, None)
 
 
@@ -174,7 +178,8 @@ def arrange_directory(args):
         if filter_files_not_handled(f, args):
             continue
 
-        pkg_name, pkg_verion, pkg_arch, pkg_series = deb_pkg_name_parser(str(f.stem))
+        pkg_name, pkg_verion, pkg_arch, pkg_series = deb_pkg_name_parser(
+            str(f.stem))
 
         relpath = f.relative_to(args.directory)
         multi_name = str(relpath.parent)
@@ -184,9 +189,9 @@ def arrange_directory(args):
 
         if f.suffix == '.deb':
             if pkg_name not in pkg_info_list:
-                pkg_info_list[pkg_name] = PkgMkInfo(args.dist, pkg_series,
-                                                    pkg_name, pkg_verion,
-                                                    pkg_arch, multi_var_name)
+                pkg_info_list[pkg_name] = PkgMkInfo(pkg_series, pkg_name,
+                                                    pkg_verion, pkg_arch,
+                                                    multi_var_name)
             pkg_info_list[pkg_name].add_md5sum(multi_name, f)
 
         print('Move {} to {}'.format(f, dst_path))
@@ -197,31 +202,82 @@ def arrange_directory(args):
     remove_empty_dir(args.directory, args.dry_run)
 
 
+# a.k.a not greater or equals to
+def compare_version_less(new_version_str, latest_mkfile):
+    if not latest_mkfile.is_file():
+        print('{} not exists'.format(latest_mkfile))
+        return False
+
+    old_version = [0, 0, 0]
+    with latest_mkfile.open() as f:
+        m = re.search(
+            r'.*?VERSION:=(\d+)\.(\d+)\.(\d+)[-~](\d+)\+g(\w+)(M?)\n',
+            f.read())
+        if m is not None:
+            try:
+                old_version = [int(v) for v in m.group(1, 2, 3)]
+            except:
+                pass
+
+    new_version = [9999, 9999, 9999]
+    m = re.match(r'(\d+)\.(\d+)\.(\d+)[-~](\d+)\+g(\w+)(M?)', new_version_str)
+    if m is not None:
+        try:
+            new_version = [int(v) for v in m.group(1, 2, 3)]
+        except:
+            pass
+
+    print('Compare version between {} and {}'.format(new_version, old_version))
+    for (new, old) in zip(new_version, old_version):
+        if new != old:
+            return new < old
+
+    # new_version equals to old_version
+    return False
+
+
 def generate_makefile(args):
     if args.output_dir is not None:
         makefile_dir = args.output_dir
     else:
         makefile_dir = args.directory / '_makefile'
     makefile_dir.mkdir(parents=True, exist_ok=True)
+
     for p in pkg_info_list.values():
+        # Check for tag build packages
+        if args.compare_dir is not None and compare_version_less(
+                p.version, (args.compare_dir / p.name).with_suffix('.mk')):
+            print('{}\'s version {} is less than latest. skip ...'.format(
+                p.name, p.version))
+            continue
+        print('Generate {}\'s makefile with version {}'.format(
+            p.name, p.version))
         with (makefile_dir / p.name).with_suffix('.mk').open('w') as f:
             p.generate_makefile(f, args.pkg_url_base)
+
+
+def check_dir_and_resolve(path):
+    p = PosixPath(path)
+    if not p.is_dir():
+        p.mkdir(parents=True, exist_ok=True)
+    return p.resolve()
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Put debfactory output dir to artifact dir format')
 
-    parser.add_argument('--dist',
-                        '-d',
-                        default='stretch',
-                        type=str,
-                        help='Distribution of debian')
-
     parser.add_argument('--dry_run', '-n', action='store_true')
-    parser.add_argument('--output_dir', '-o', type=PosixPath, default=None)
+    parser.add_argument('--output_dir',
+                        '-o',
+                        type=check_dir_and_resolve,
+                        default=None)
+    parser.add_argument('--compare_dir',
+                        '-c',
+                        type=check_dir_and_resolve,
+                        default=None)
     parser.add_argument('--pkg_url_base', '-u', default='')
-    parser.add_argument('directory', type=PosixPath)
+    parser.add_argument('directory', type=check_dir_and_resolve)
 
     return parser.parse_args()
 

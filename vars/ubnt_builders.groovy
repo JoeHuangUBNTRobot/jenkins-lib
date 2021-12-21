@@ -688,7 +688,7 @@ def analytic_report_builder(String productSeries, Map job_options=[:], Map build
 def debbox_base_files_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
     //return debpkg(job_options, ['stretch/all', 'buster/all'])
-    return debpkg(job_options, ['stretch/all'])
+    return debpkg(job_options, ['stretch/all', 'bullseye/all'])
 }
 
 def cloudkey_apq8053_initramfs_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
@@ -714,7 +714,7 @@ def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_seri
 
     // stretch/amd64 could not build successfully
     //return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
-    return debpkg(job_options, ['stretch/arm64'])
+    return debpkg(job_options, ['stretch/arm64', 'bullseye/arm64'])
 }
 /*
  * A general package build function
@@ -724,85 +724,73 @@ def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_seri
  *
  */
 def debpkg(Map job_options, configs=['stretch/all']) {
-    def build_jobs = []
-
     verify_required_params('debpkg', job_options, ['name'])
 
-    configs.each { config ->
-        def extra = ''
-        def artifact_prefix = config
-        def (distribution, arch) = config.split('/')
-        def builder = "$distribution-arm64"
+    return [[
+        node: job_options.node ?: 'debfactory',
+        name: job_options.name,
+        artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
+        dist: job_options.dist ?: 'dist',
+        execute_order: 1,
+        upload: job_options.upload ?: false,
+        non_cross: job_options.non_cross ?: false,
+        pre_checkout_steps: { m->
+            m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
+        },
+        build_steps: { m ->
+            def uid, gid
 
-        if (arch != 'all') {
-            builder = "${distribution}-${arch}"
-            extra = "DEB_TARGET_ARCH=${arch}"
-        }
+            (uid, gid) = get_ids()
+            sh "mkdir -p ${m.artifact_dir}"
+            m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}")
 
-        build_jobs.add([
-            node: job_options.node ?: 'debfactory',
-            name: job_options.name + "-${builder}",
-            artifact_dir: job_options.artifact_dir ?: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${builder}",
-            dist: job_options.dist ?: 'dist',
-            execute_order: 1,
-            upload: job_options.upload ?: false,
-            non_cross: job_options.non_cross ?: false,
-            pre_checkout_steps: { m->
-                m.build_dir = "${m.name}-${env.BUILD_NUMBER}-${env.BUILD_TIMESTAMP}"
-            },
-            build_steps: { m ->
-                def uid, gid
-                def deleteWsPath
+            ws("${m.build_dir}") {
+                def co_map = checkout scm
+                def url = co_map.GIT_URL
+                def git_args = git_helper.split_url(url)
+                def repository = git_args.repository
+                echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
+                git_args.revision = git_helper.sha()
+                git_args.rev_num = git_helper.rev()
 
-                (uid, gid) = get_ids()
-                sh "mkdir -p ${m.artifact_dir}"
-                m.absolute_artifact_dir = sh_output("readlink -f ${m.artifact_dir}")
-
-                ws("${m.build_dir}") {
-                    deleteWsPath = env.WORKSPACE
-                    def dockerRegistry = get_docker_registry()
-                    def dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-${builder}:latest")
-
-                    if (m.non_cross) {
-                        if (builder != 'stretch-arm64') { // TODO qemu buster builder
-                            return false
-                        }
-                        dockerImage = docker.image("$dockerRegistry/debbox-builder-qemu-stretch-arm64:latest")
+                def is_pr = env.getProperty('CHANGE_ID') != null
+                def is_atag = env.getProperty('TAG_NAME') != null
+                if (is_pr && is_atag) {
+                    error 'Unexpected environment, cannot be both PR and TAG'
+                }
+                def ref
+                if (is_atag) {
+                    ref = TAG_NAME
+                    git_helper.verify_is_atag(ref)
+                    git_args.local_branch = ref
+                } else {
+                    ref = git_helper.current_branch()
+                    if (!ref || ref == 'HEAD') {
+                        ref = "origin/${BRANCH_NAME}"
+                    } else {
+                        git_args.local_branch = ref
                     }
+                }
+                git_args.is_pr = is_pr
+                git_args.is_tag = is_atag
+                git_args.ref = ref
+                m['git_args'] = git_args.clone()
+                m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
+                print m.upload_info
+                configs.each { config ->
+                    def extra = ''
+                    def (distribution, arch) = config.split('/')
+                    def builder = "$distribution-arm64"
+
+                    if (arch != 'all') {
+                        builder = "${distribution}-${arch}"
+                        extra = "DEB_TARGET_ARCH=${arch}"
+                    }
+
+                    def dockerRegistry = get_docker_registry()
+                    def dockerImage = docker.image("$dockerRegistry/debbox-builder-${m.non_cross ? 'qemu' : 'cross'}-${builder}:latest")
                     dockerImage.pull()
                     dockerImage.inside(get_docker_args(m.absolute_artifact_dir)) {
-                        def co_map = checkout scm
-                        def url = co_map.GIT_URL
-                        def git_args = git_helper.split_url(url)
-                        def repository = git_args.repository
-                        echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
-                        git_args.revision = git_helper.sha()
-                        git_args.rev_num = git_helper.rev()
-
-                        def is_pr = env.getProperty('CHANGE_ID') != null
-                        def is_atag = env.getProperty('TAG_NAME') != null
-                        if (is_pr && is_atag) {
-                            error 'Unexpected environment, cannot be both PR and TAG'
-                        }
-                        def ref
-                        if (is_atag) {
-                            ref = TAG_NAME
-                            git_helper.verify_is_atag(ref)
-                            git_args.local_branch = ref
-                        } else {
-                            ref = git_helper.current_branch()
-                            if (!ref || ref == 'HEAD') {
-                                ref = "origin/${BRANCH_NAME}"
-                            } else {
-                                git_args.local_branch = ref
-                            }
-                        }
-                        git_args.is_pr = is_pr
-                        git_args.is_tag = is_atag
-                        git_args.ref = ref
-                        m['git_args'] = git_args.clone()
-                        m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
-                        print m.upload_info
                         try {
                             bash "make package RELEASE_BUILD=${is_atag} ${extra} 2>&1 | tee make.log"
                         } catch (Exception e) {
@@ -813,48 +801,50 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                             sh "mv make.log /root/artifact_dir/${distribution} || true"
                             sh "echo gid=$gid uid:$uid"
                             sh "chown $uid:$gid -R /root/artifact_dir"
-                            sh 'make package-clean || true'
                         }
                     }
-                }
-                dir_cleanup("${m.build_dir}") {
-                    echo "cleanup ws ${m.build_dir}"
-                }
-                return true
-            },
-            archive_steps: { m ->
-                stage("Artifact ${m.name}") {
-                    if (fileExists("$m.artifact_dir/${distribution}/make.log")) {
-                        archiveArtifacts artifacts: "${m.artifact_dir}/**"
-                        if (m.upload && m.containsKey('upload_info')) {
-                            def upload_path = m.upload_info.path.join('/')
-                            def latest_path = m.upload_info.latest_path.join('/')
-                            def ref_path = m.upload_info.ref_path.join('/')
-
-                            if (m.git_args.is_tag) {
-                                writeFile file:'pkg-arrange2.py', text:libraryResource("pkg-arrange2.py")
-                                sh "mkdir -p ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile/${distribution}"
-                                sh "mkdir -p ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp/${distribution}"
-                                def makefile_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile/${distribution}")
-                                def makefile_bkp_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp/${distribution}")
-                                sh "python3 ./pkg-arrange2.py " +
-                                    "-o ${makefile_path} " +
-                                    "-c ${makefile_bkp_path} " +
-                                    "-d ${distribution} " +
-                                    "-u ${ubnt_nas.get_nasdomain()}/${upload_path} " +
-                                    "${m.artifact_dir}/"
-                            }
-
-                            println "upload: $upload_path, artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
-                            ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
-                        }
-                        sh "rm -rf ${m.artifact_dir}/${distribution}"
-                    }
+                    return true
                 }
             }
-        ])
-    }
-    return build_jobs
+        },
+        archive_steps: { m ->
+            stage("Artifact ${m.name}") {
+                def rc = sh script: "ls -1qA ${m.artifact_dir} | grep -q .", returnStatus: true
+                if (rc == 0) {
+                    archiveArtifacts artifacts: "${m.artifact_dir}/**"
+                    if (m.upload && m.containsKey('upload_info')) {
+                        def upload_path = m.upload_info.path.join('/')
+                        def latest_path = m.upload_info.latest_path.join('/')
+                        def ref_path = m.upload_info.ref_path.join('/')
+
+                        if (m.git_args.is_tag) {
+                            writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
+                            sh "mkdir -p ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile"
+                            sh "mkdir -p ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp"
+                            def makefile_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile")
+                            def makefile_bkp_path = sh_output("realpath ${ubnt_nas.get_nasdir()}/${ref_path}/../.makefile.bkp")
+                            sh "python3 ./pkg-arrange.py " +
+                                "-o ${makefile_path} " +
+                                "-c ${makefile_bkp_path} " +
+                                "-u ${ubnt_nas.get_nasdomain()}/${upload_path} " +
+                                "${m.artifact_dir}/"
+                        }
+
+                        println "upload: $upload_path, artifact_path: ${m.artifact_dir}/* latest_path: $latest_path"
+                        ubnt_nas.upload("${m.artifact_dir}/*", upload_path, latest_path)
+                    }
+                    sh "rm -rf ${m.artifact_dir}"
+                }
+            }
+        },
+        archive_cleanup_steps: { m ->
+            stage("Artifact cleanup ${m.name}") {
+                dir_cleanup("${m.build_dir}") {
+                    echo "cleanup artifact ${m.build_dir}"
+                }
+            }
+        }
+    ]]
 }
 
 /*
