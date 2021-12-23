@@ -9,6 +9,7 @@ def is_qa_test_branch(branchName) {
     if (branchName == "master" || branchName == "stable/2.3" || branchName.startsWith("sustain/unifi-core-"))
         return true
     return false
+}
 
 def get_ids() {
     def username = sh_output("whoami")
