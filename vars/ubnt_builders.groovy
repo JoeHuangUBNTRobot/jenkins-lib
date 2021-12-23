@@ -5,6 +5,11 @@ def get_docker_registry() {
     return dockerRegistry
 }
 
+def is_qa_test_branch(branchName) {
+    if (branchName == "master" || branchName == "stable/2.3" || branchName.startsWith("sustain/unifi-core-"))
+        return true
+    return false
+
 def get_ids() {
     def username = sh_output("whoami")
     def uid = sh_output("id -zu $username")
@@ -17,7 +22,9 @@ def get_job_options(String project) {
         debbox_builder: [
             job_artifact_dir: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
             node: 'debbox',
-            upload: true
+            upload: true,
+            project_cache: true,
+            project_cache_location: 'debbox.git'
         ],
         debfactory_builder:[
             job_artifact_dir: "${env.JOB_BASE_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
@@ -97,6 +104,7 @@ def get_job_options(String project) {
 
     return options.get(project, [:])
 }
+
 
 def get_docker_args(artifact_dir) {
     def cache_dir = project_cache_updater.get_project_cache_dir()
@@ -356,6 +364,9 @@ def debfactory_non_cross_builder(String productSeries, Map job_options=[:], Map 
 }
 
 def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
+    def semaphore = 0
+    def upload_semaphore = 0
+    def total_job = 0
     def debbox_series = [
         UCK:
         [
@@ -411,14 +422,23 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
     def is_atag = env.getProperty('TAG_NAME') != null
     def build_product = build_series[productSeries]
     def build_jobs = []
+    def slackResp = slackSend(channel: 'unifi-os-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good")
+    def slackThreadId = slackResp.threadId
 
     build_product.each { name, target_map ->
-        if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix)) {
-            return
+        
+        if (is_tag && productSeries == 'UNIFICORE') {
+            def current_tag_prefix = TAG_NAME.tokenize('/')[0]
+            if (current_tag_prefix != target_map.tag_prefix) {
+                return
+            }
         }
-
+        lock("debbox_builder-${env.BUILD_NUMBER}") {
+           total_job = total_job + 1
+           println "total_job: $total_job"
+        }
         build_jobs.add([
-            node: is_pr ? 'deb-img' : (job_options.node ?: 'debbox'),
+            node: is_pr ? 'debbox-PR' : (job_options.node ?: 'debbox'),
             name: target_map.product,
             resultpath: target_map.resultpath,
             additional_store: target_map.additional_store ?: [],
@@ -426,6 +446,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
             pack_bootloader: target_map.pack_bootloader ?: 'yes',
             build_status:false,
+            project_cache: (job_options.project_cache ?: false),
+            project_cache_location: (job_options.project_cache_location ?: 'debbox.git'),
             upload: job_options.upload ?: false,
             pre_checkout_steps: { m->
                 // do whatever you want before checkout step
@@ -444,6 +466,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                 }
                 stage("Build ${m.name}") {
                     dir_cleanup("${m.build_dir}") {
+                        def dockerRegistry = get_docker_registry()
                         def dockerImage
                         def dockerRegistry = get_docker_registry()
                         if (productSeries == 'NX') {
@@ -472,7 +495,22 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             *     tag: unifi-cloudkey/v1.1.9 (TAG_NAME)
                             *     branch_name (feature/unifi-core-integration)
                             */
-                            def co_map = checkout scm
+                            def co_map
+                            // open it when we have method to modify the CloneOption without affect others option
+                            // def cache_path = "${project_cache_updater.get_project_cache_dir()}/${m.project_cache_location}"
+                            // scm.extensions = scm.extensions + [[$class: 'CloneOption', reference: "${cache_path}"]]
+                            for(retry = 0; retry < 3; retry++) {
+                                try {
+                                    timeout(time: 5, unit: 'MINUTES') {
+                                        co_map = checkout scm
+                                    }
+                                    break
+                                } catch (e) {
+                                    echo "Timeout during checkout scm"
+                                    sh "rm -rf .git || true"
+                                }
+                            }
+
                             def url = co_map.GIT_URL
                             def git_args = git_helper.split_url(url)
                             def repository = git_args.repository
@@ -523,8 +561,14 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
                             print m.upload_info
                             try {
+                                def kcache = "${project_cache_updater.get_project_cache_dir()}/debbox-kernel.git"
+                                println "kcache: $kcache"
                                 withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
-                                    bash "AWS_PROFILE=default PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+                                    bash "AWS_PROFILE=default GITCACHE=${kcache} PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+                                }
+                                lock("debbox_builder-${env.BUILD_NUMBER}") {
+                                    semaphore = semaphore + 1
+                                    println "semaphore: $semaphore"
                                 }
                                 sh 'cp make.log /root/artifact_dir/'
                                 sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
@@ -537,6 +581,12 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 m.additional_store.each { additional_file ->
                                     sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
                                 }
+                                timeout(time: 2, unit: 'HOURS') {
+                                    waitUntil {
+                                        semaphore == total_job
+                                    }
+                                }
+                                
                             }
                             catch (Exception e) {
                                 // Due to we have the build error, remove all at here
@@ -549,30 +599,26 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 sh 'chmod -R 777 .'
                                 deleteDir()
                             }
-                        }
-
+                        }               
                     }
                 }
                 return true
-            }
-        ])
-    }
-    build_product.each { name, target_map ->
-        if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix)) {
-            return
-        }
-
-        build_jobs.add([
-            node: is_pr ? 'deb-img' : (job_options.node ?: 'debbox'),
-            name: target_map.product + '__UPLOAD',
-            product: target_map.product,
-            execute_order: 2,
+            },
             archive_steps: { m->
                 stage('Upload to server') {
                     if (m.upload && m.containsKey('upload_info')) {
                         def upload_path = m.upload_info.path.join('/')
                         def latest_path = m.upload_info.latest_path.join('/')
                         m.nasinfo = ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path)
+                    }
+                    lock("debbox_builder-${env.BUILD_NUMBER}") {
+                        upload_semaphore = upload_semaphore + 1
+                        println "upload_semaphore: $upload_semaphore"
+                    }
+                    timeout(time: 1, unit: 'HOURS') {
+                        waitUntil {
+                            upload_semaphore == total_job
+                        }
                     }
                 }
             },
@@ -587,42 +633,21 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     // do nothing
                     }
                 }
-            }
-        ])
-    }
-    build_product.each { name, target_map ->
-        if (is_tag && productSeries == 'UNIFICORE' && !TAG_NAME.startsWith(target_map.tag_prefix)) {
-            return
-        }
-
-        build_jobs.add([
-            node: is_pr ? 'deb-img' : (job_options.node ?: 'debbox'),
-            name: target_map.product + '__QA',
-            product: target_map.product,
-            execute_order: 3,
+            },
             qa_test_steps: { m->
-                if (m.name.contains('fcd')) {
+                if (m.name.contains('fcd') || (!is_tag && !is_pr && !is_qa_test_branch(BRANCH_NAME))) {
+                    echo "Skip QA test ..."
                     return
                 }
                 def url_domain = 'http://tpe-judo.rad.ubnt.com/build'
                 if (m.containsKey('upload_info')) {
                     def upload_path = m.upload_info.path.join('/')
-                    def relative_path = "${upload_path}/${m.product}/FW.LATEST.bin"
-                    def build_date = ubnt_nas.get_fw_build_date(relative_path)
-                    def url = "${url_domain}/${relative_path}"
-                    echo "url: $url, build_date: $build_date"
-                    withCredentials([string(
-                        credentialsId: 'UNASHACKER_TOKEN',
-                        variable:'jobtoken')]) {
-                        if (name == 'UNVR') {
-                            sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com/job/UNVR-FW-CI-Test/buildWithParameters\\?token\\=UNVR-CI-test\\&url\\=$url\\&date\\=$build_date --user unashacker:$jobtoken"
-                        } else if (name == 'UNVRPRO') {
-                            json = "\'{\"parameter\": [{\"name\":\"url\", \"value\":\"${url}\"}, {\"name\":\"date\", \"value\":\"${build_date}\"}, {\"name\":\"model\", \"value\":\"UNVR-Pro\"}, {\"name\":\"product\", \"value\":\"unvr\"}]}\'"
-                            sh "curl -X POST http://tpe-pbsqa-ci.rad.ubnt.com/job/UNVR-Pro-FW-CI-test/build --data-urlencode json=$json --user unashacker:$jobtoken"
-                        }
-                    }
+                    def relative_path = "${upload_path}/${m.name}/FW.LATEST.bin"
+                    def fw_path = ubnt_nas.get_fw_linkpath(relative_path)
+                    def url = "${url_domain}/${fw_path}"
+                    echo "url: $url"
 
-                    if (name == 'UDMPROSE' || name == 'UDR') {
+                    if (name == 'UDMPROSE' || name == 'UDR' || name == 'UDW') {
                         withCredentials([string(
                             credentialsId: 'IEV_JENKINS_TOKEN',
                             variable:'jobtoken')]) {
@@ -635,10 +660,19 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 "&FW_DIR=${m.upload_info.dir_name}" +
                                 "&BUILD_TYPE=${target_map.product}" +
                                 "&FW_VERSION=${job_info}" +
-                                "&FW_URL=${url}" +
+                                "&FW_URL=${url_domain}/${relative_path}" +
                                 "&FW_COMMIT=${m.git_args.revision}"
                             print data
                             sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
+                            // def udmpse_json = "\'{\"parameter\": " +
+                            //                   "[{\"name\":\"BRANCH\", \"value\":\"${m.git_args.local_branch}\"}, " +
+                            //                   "{\"name\":\"FW_NAME\", \"value\":\"${fw_name}\"}, " +
+                            //                   "{\"name\":\"FW_DIR\", \"value\":\"${m.upload_info.dir_name}}\"}, " +
+                            //                   "{\"name\":\"BUILD_TYPE\", \"value\":\"${target_map.product}\"}, " +
+                            //                   "{\"name\":\"FW_VERSION\", \"value\":\"${job_info}\"}, " +
+                            //                   "{\"name\":\"FW_URL\", \"value\":\"${url}\"}, " +
+                            //                   "{\"name\":\"FW_COMMIT\", \"value\":\"${m.git_args.revision}\"}]}\'"
+                            // sh "curl -k -X POST \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\" --data-urlencode json=${udmpse_json}"
                         }
                     }
                     if (name == 'UCKP') {
@@ -660,8 +694,38 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             sh "curl -k -d \"${data}\" \"https://${HOST}/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
                         }
                     }
+
+                    // skip UDW, UDWPRO, UDMPRO, UDK, UDMBASE test
+                    if (name == 'UDW' || name == 'UDMPRO' || name == 'UDWPRO' || name == 'UDK' || name == 'UDMBASE') {
+                        echo "Skip un-support model ..."
+                    	return
+                    }
+
+                    def params = "fw_url=${url}\nslack_channel=${slackThreadId}"
+                    def isBlockBuild = false
+                    def auth = CredentialsAuth(credentials: 'jenkins8787-trigger')
+                    def job = null
+                    if (name == 'UNVR') {
+                        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UNVR_smoke_entry",
+                                               blockBuildUntilComplete: isBlockBuild,
+                                               parameters: params,
+                                               auth: auth
+                    } else if (name == 'UDMPROSE') {
+                        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UDMSE_smoke_test",
+                                               blockBuildUntilComplete: isBlockBuild,
+                                               parameters: params,
+                                               auth: auth
+                    } else {
+                        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/${name}_smoke_test",
+                                               blockBuildUntilComplete: isBlockBuild,
+                                               parameters: params,
+                                               auth: auth
+                    }
+                    
+                    // currentBuild.result = job.getBuildResult().toString()
                 }
             }
+
         ])
     }
     return build_jobs

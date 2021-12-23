@@ -61,7 +61,7 @@ def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="") {
         println "upload from $src_path to $nas_path"
         sh "mkdir -p $nas_path"
         sh "cp -rp $src_path $nas_path"
-        if (nas_path.contains('firmware.debbox')) {
+        if (nas_path.contains('debbox')) {
             def src_basename = src_path.tokenize('/').pop()
             try {
                 def output_path = sh_output("realpath ${nas_path}/${src_basename}/*")
@@ -99,6 +99,14 @@ def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="") {
     }
 
     return nasinfo
+}
+
+def get_fw_linkpath(firmware_relative_path) {
+    def nasdir = "$HOME/builder"
+    def fw_path = "${nasdir}/${firmware_relative_path}"
+    fw_path = sh_output("readlink -f $fw_path")
+    fw_path = fw_path.replace("${nasdir}/", "")
+    return fw_path
 }
 
 def get_fw_build_date(firmware_relative_path) {
