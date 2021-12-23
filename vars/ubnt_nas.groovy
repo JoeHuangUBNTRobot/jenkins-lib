@@ -6,6 +6,7 @@ def generate_buildinfo(Map git_args) {
     def ref_path = [] + git_args.repository
     def dir_name = 'unknown'
     def latest_path = [] + git_args.repository
+    def pkgs_path = [] + git_args.repository
     def ref = git_args.ref
     def ref_sha = git_helper.sha(ref)
 
@@ -23,12 +24,14 @@ def generate_buildinfo(Map git_args) {
         ref_path = ref_path + dir_name + branch
         latest_path = latest_path + dir_name + branch + 'latest'
     }
+    pkgs_path = pkgs_path + 'pkgs'
 
     println "PATH: ${ref_path.join('/')}"
 
     def output_dir = [BUILD_NUMBER, git_args.rev_num, git_helper.short_sha(ref_sha)].join('-')
     output.path = ref_path + output_dir
     output.latest_path = latest_path
+    output.pkgs_path = pkgs_path
     output.ref_path = ref_path
     output.job_path = output_dir
     output.dir_name = dir_name
@@ -47,7 +50,7 @@ def get_nasdomain() {
     return 'http://tpe-judo.rad.ubnt.com/build'
 }
 
-def upload(src_path, dst_path, latest_path, link_subdir = false) {
+def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="") {
     def nasinfo = [:]
     def nasdomain = get_nasdomain()
     def nasdir = get_nasdir()
@@ -78,6 +81,16 @@ def upload(src_path, dst_path, latest_path, link_subdir = false) {
             if (link_subdir) {
                 sh "mkdir -p $latest_path"
                 sh "for subdir in $nas_path/*; do ln -srf -t $latest_path \$subdir; done"
+                if (pkgs_path) {
+                    try {
+                        pkgs_path = "$nasdir/$pkgs_path"
+                        writeFile file:'pkg-arrange.py', text:libraryResource("pkg-arrange.py")
+                        writeFile file:'link-creator.py', text:libraryResource("link-creator.py")
+                        sh "python3 ./link-creator.py --src ${nas_path} --trg ${pkgs_path}"
+                    } catch (err) {
+                        println "${err}"
+                    }
+                }
             } else {
                 sh "ln -srfT $nas_path $latest_path"
             }
