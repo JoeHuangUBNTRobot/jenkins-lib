@@ -469,7 +469,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     dir_cleanup("${m.build_dir}") {
                         def dockerRegistry = get_docker_registry()
                         def dockerImage
-                        def dockerRegistry = get_docker_registry()
                         if (productSeries == 'NX') {
                             dockerImage = docker.image("$dockerRegistry/ubuntu:nx")
                         } else {
