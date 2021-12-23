@@ -11,6 +11,12 @@ def is_qa_test_branch(branchName) {
     return false
 }
 
+def is_uof_test_branch(branchName) {
+    if (branchName.startsWith("test-auto/"))
+        return true
+    return is_qa_test_branch(branchName)
+}
+
 def get_ids() {
     def username = sh_output("whoami")
     def uid = sh_output("id -zu $username")
@@ -635,7 +641,38 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                 }
             },
             qa_test_steps: { m->
-                if (m.name.contains('fcd') || (!is_tag && !is_pr && !is_qa_test_branch(BRANCH_NAME))) {
+                if (m.name.contains('fcd')) {
+                    echo "Skip fcd fw QA test ..."
+                    return
+                }
+
+                if (is_uof_test_branch(BRANCH_NAME)) {
+                    if (m.containsKey('upload_info')) {
+                        withCredentials([
+                            string(credentialsId: 'uofusertoken', variable:'usertoken'),
+                            string(credentialsId: 'uofjobentrypointtoken', variable:'jobentrytoken')
+                            ]) {
+                            m.nasinfo.each { key, value ->
+                                if (key.endsWith(".bin")) {
+                                    def HOST = "10.2.51.135:5680"
+                                    def data_list = ["",
+                                        "\"cause=builder-trigger\"",
+                                        "\"token=${jobentrytoken}\"",
+                                        "\"IS_TAG_BUILD=${is_tag ? 'true' : 'false'}\"",
+                                        "\"IS_PR_BUILD=${is_pr ? 'true' : 'false'}\"",
+                                        "\"PRODUCT=${name}\"",
+                                        "\"FW_URL=${value}\""
+                                    ]
+                                    print data_list
+                                    sh "curl ${data_list.join(' --data-urlencode ')} --user ubnt:${usertoken} \"http://${HOST}/job/job-entry-point/buildWithParameters\""
+                                    return
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!is_tag && !is_pr && !is_qa_test_branch(BRANCH_NAME)) {
                     echo "Skip QA test ..."
                     return
                 }
@@ -698,7 +735,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     // skip UDW, UDWPRO, UDMPRO, UDK, UDMBASE test
                     if (name == 'UDW' || name == 'UDMPRO' || name == 'UDWPRO' || name == 'UDK' || name == 'UDMBASE') {
                         echo "Skip un-support model ..."
-                    	return
+                        return
                     }
 
                     def params = "fw_url=${url}\nslack_channel=${slackThreadId}"
