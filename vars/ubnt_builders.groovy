@@ -801,7 +801,7 @@ def cloudkey_apq8053_initramfs_builder(String productSeries, Map job_options=[:]
 def ubnt_archive_keyring_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
     //return debpkg(job_options, ['stretch/all', 'buster/all'])
-    return debpkg(job_options, ['stretch/all'])
+    return debpkg(job_options, ['stretch/all', 'bullseye/all'])
 }
 
 def ubnt_zram_swap_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
