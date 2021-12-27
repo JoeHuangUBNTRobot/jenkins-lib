@@ -1,7 +1,8 @@
 def bash(String cmd) { sh("#!/usr/bin/env bash\nset -euo pipefail\n${cmd}") }
 
 def get_docker_registry() {
-    def dockerRegistry='registry.ubnt.com.tw:6666'
+    // use ip to avoid dns problem when pull docker image from registry.ubnt.com.tw:6666
+    def dockerRegistry='10.2.40.125:6666'
     return dockerRegistry
 }
 
