@@ -796,7 +796,7 @@ def debbox_base_files_builder(String productSeries, Map job_options=[:], Map bui
 def cloudkey_apq8053_initramfs_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
     //return debpkg(job_options, ['stretch/all', 'buster/all'])
-    return debpkg(job_options, ['stretch/all'])
+    return debpkg(job_options, ['stretch/all', 'bullseye/all'])
 }
 
 def ubnt_archive_keyring_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
@@ -808,7 +808,7 @@ def ubnt_archive_keyring_builder(String productSeries, Map job_options=[:], Map 
 def ubnt_zram_swap_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
     //return debpkg(job_options, ['stretch/all', 'buster/all'])
-    return debpkg(job_options, ['stretch/all'])
+    return debpkg(job_options, ['stretch/all', 'bullseye/all'])
 }
 
 def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
