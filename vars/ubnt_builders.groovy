@@ -434,7 +434,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
     def slackThreadId = slackResp.threadId
 
     build_product.each { name, target_map ->
-        
+
         if (is_tag && productSeries == 'UNIFICORE') {
             def current_tag_prefix = TAG_NAME.tokenize('/')[0]
             if (current_tag_prefix != target_map.tag_prefix) {
@@ -593,7 +593,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                         semaphore == total_job
                                     }
                                 }
-                                
+
                             }
                             catch (Exception e) {
                                 // Due to we have the build error, remove all at here
@@ -606,7 +606,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 sh 'chmod -R 777 .'
                                 deleteDir()
                             }
-                        }               
+                        }
                     }
                 }
                 return true
@@ -759,7 +759,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                                parameters: params,
                                                auth: auth
                     }
-                    
+
                     // currentBuild.result = job.getBuildResult().toString()
                 }
             }
@@ -771,43 +771,36 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 
 def disk_smart_mon_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    //return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
     return debpkg(job_options, ['stretch/arm64'])
 }
 
 def disk_quota_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    //return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
     return debpkg(job_options, ['stretch/arm64'])
 }
 
 def analytic_report_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    //return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
     return debpkg(job_options, ['stretch/arm64'])
 }
 
 def debbox_base_files_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    //return debpkg(job_options, ['stretch/all', 'buster/all'])
     return debpkg(job_options, ['stretch/all', 'bullseye/all'])
 }
 
 def cloudkey_apq8053_initramfs_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    //return debpkg(job_options, ['stretch/all', 'buster/all'])
     return debpkg(job_options, ['stretch/all', 'bullseye/all'])
 }
 
 def ubnt_archive_keyring_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    //return debpkg(job_options, ['stretch/all', 'buster/all'])
     return debpkg(job_options, ['stretch/all', 'bullseye/all'])
 }
 
 def ubnt_zram_swap_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    //return debpkg(job_options, ['stretch/all', 'buster/all'])
     return debpkg(job_options, ['stretch/all', 'bullseye/all'])
 }
 
@@ -815,7 +808,6 @@ def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_seri
     echo "build $productSeries"
 
     // stretch/amd64 could not build successfully
-    //return debpkg(job_options, ['stretch/arm64', 'buster/arm64'])
     return debpkg(job_options, ['stretch/arm64', 'bullseye/arm64'])
 }
 /*
