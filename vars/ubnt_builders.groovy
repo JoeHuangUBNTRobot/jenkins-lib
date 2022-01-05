@@ -771,7 +771,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
 
 def disk_smart_mon_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64'])
+    return debpkg(job_options, ['stretch/arm64', 'bullseye/arm64'])
 }
 
 def disk_quota_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
