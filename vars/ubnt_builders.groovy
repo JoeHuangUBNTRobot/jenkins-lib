@@ -655,7 +655,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             ]) {
                             m.nasinfo.each { key, value ->
                                 if (key.endsWith(".bin")) {
-                                    def HOST = "10.2.51.135:5680"
+                                    def HOST = "10.2.0.141:5680"
                                     def data_list = ["",
                                         "\"cause=builder-trigger\"",
                                         "\"token=${jobentrytoken}\"",
