@@ -433,6 +433,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
     def slackResp = slackSend(channel: 'unifi-os-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good")
     def slackThreadId = slackResp.threadId
 
+    def uofSlackResp = null
+    if (is_uof_test_branch(BRANCH_NAME)) {
+        uofSlackResp = slackSend(channel: 'unifi-os-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good", iconEmoji: ":pepe-sad:")
+    }
     build_product.each { name, target_map ->
 
         if (is_tag && productSeries == 'UNIFICORE') {
@@ -662,6 +666,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                         "\"IS_TAG_BUILD=${is_tag ? 'true' : 'false'}\"",
                                         "\"IS_PR_BUILD=${is_pr ? 'true' : 'false'}\"",
                                         "\"PRODUCT=${name}\"",
+                                        "\"THREAD_ID=${uofSlackResp ? uofSlackResp.threadId : ''}\"",
                                         "\"FW_URL=${value}\""
                                     ]
                                     print data_list
