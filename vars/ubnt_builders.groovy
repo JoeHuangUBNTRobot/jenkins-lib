@@ -738,8 +738,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         }
                     }
 
-                    // skip UDW, UDWPRO, UDMPRO, UDK, UDMBASE test
-                    if (name == 'UDW' || name == 'UDMPRO' || name == 'UDWPRO' || name == 'UDK' || name == 'UDMBASE') {
+                    // skip UDWPRO, UDMPRO, UDK, UDMBASE test
+                    if (name == 'UDMPRO' || name == 'UDWPRO' || name == 'UDK' || name == 'UDMBASE') {
                         echo "Skip un-support model ..."
                         return
                     }
