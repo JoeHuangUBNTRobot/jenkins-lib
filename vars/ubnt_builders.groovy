@@ -738,8 +738,8 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         }
                     }
 
-                    // skip UDWPRO, UDMPRO, UDK, UDMBASE test
-                    if (name == 'UDMPRO' || name == 'UDWPRO' || name == 'UDK' || name == 'UDMBASE') {
+                    // skip UDWPRO, UDK, UDMBASE test
+                    if (name == 'UDWPRO' || name == 'UDK' || name == 'UDMBASE') {
                         echo "Skip un-support model ..."
                         return
                     }
@@ -750,11 +750,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     def job = null
                     if (name == 'UNVR') {
                         job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UNVR_smoke_entry",
-                                               blockBuildUntilComplete: isBlockBuild,
-                                               parameters: params,
-                                               auth: auth
-                    } else if (name == 'UDMPROSE') {
-                        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UDMSE_smoke_test",
                                                blockBuildUntilComplete: isBlockBuild,
                                                parameters: params,
                                                auth: auth
