@@ -461,6 +461,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             project_cache: (job_options.project_cache ?: false),
             project_cache_location: (job_options.project_cache_location ?: 'debbox.git'),
             upload: job_options.upload ?: false,
+            dist: job_options.dist ?: "stretch",
             pre_checkout_steps: { m->
                 // do whatever you want before checkout step
                 sh 'export'
@@ -483,7 +484,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         if (productSeries == 'NX') {
                             dockerImage = docker.image("$dockerRegistry/ubuntu:nx")
                         } else {
-                            dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-stretch-arm64:latest")
+                            dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-${m.dist}-arm64:latest")
                         }
                         dockerImage.pull()
                         def docker_args = get_docker_args(m.docker_artifact_path) + " -v $HOME/.jenkinbuild/.aws:/root/.aws:ro"
@@ -575,7 +576,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 def kcache = "${project_cache_updater.get_project_cache_dir()}/debbox-kernel.git"
                                 println "kcache: $kcache"
                                 withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
-                                    bash "AWS_PROFILE=default GITCACHE=${kcache} PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+                                    bash "AWS_PROFILE=default GITCACHE=${kcache} PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} DIST=${m.dist} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
                                 }
                                 lock("debbox_builder-${env.BUILD_NUMBER}") {
                                     semaphore = semaphore + 1
