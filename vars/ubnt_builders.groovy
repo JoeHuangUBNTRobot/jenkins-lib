@@ -430,8 +430,12 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
     def is_atag = env.getProperty('TAG_NAME') != null
     def build_product = build_series[productSeries]
     def build_jobs = []
+
     def slackResp = slackSend(channel: 'unifi-os-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good")
-    def slackThreadId = slackResp.threadId
+    def slackThreadId = null
+    if (slackResp) {
+        slackThreadId = slackResp.threadId
+    }
 
     def uofSlackResp = null
     if (is_uof_test_branch(BRANCH_NAME)) {
