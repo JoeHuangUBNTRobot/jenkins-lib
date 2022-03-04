@@ -518,7 +518,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             // scm.extensions = scm.extensions + [[$class: 'CloneOption', reference: "${cache_path}"]]
                             for(retry = 0; retry < 3; retry++) {
                                 try {
-                                    timeout(time: 5, unit: 'MINUTES') {
+                                    timeout(time: 10, unit: 'MINUTES') {
                                         co_map = checkout scm
                                     }
                                     break
