@@ -430,15 +430,16 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
     def is_atag = env.getProperty('TAG_NAME') != null
     def build_product = build_series[productSeries]
     def build_jobs = []
+    Boolean is_temp_build = job_options.is_temp_build ?: false
 
-    def slackResp = slackSend(channel: 'unifi-os-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good")
     def slackThreadId = null
-    if (slackResp) {
-        slackThreadId = slackResp.threadId
+    if ((is_tag || is_pr || is_qa_test_branch(BRANCH_NAME)) && !is_temp_build) {
+        def slackResp = slackSend(channel: 'unifi-os-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good")
+        if (slackResp) slackThreadId = slackResp.threadId
     }
 
     def uofSlackResp = null
-    if (is_uof_test_branch(BRANCH_NAME)) {
+    if (is_uof_test_branch(BRANCH_NAME) && !is_temp_build) {
         uofSlackResp = slackSend(channel: 'unifi-os-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good", iconEmoji: ":pepe-sad:")
     }
     build_product.each { name, target_map ->
@@ -573,6 +574,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             git_args.is_tag = is_tag
                             git_args.is_atag = is_atag
                             git_args.ref = ref
+                            if (is_temp_build) {
+                                git_args.is_temp_build = true
+                                git_args.temp_dir_name = m.dist
+                            }
                             m['git_args'] = git_args.clone()
                             m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
                             print m.upload_info
@@ -653,6 +658,10 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             qa_test_steps: { m->
                 if (m.name.contains('fcd')) {
                     echo "Skip fcd fw QA test ..."
+                    return
+                }
+                if (is_temp_build) {
+                    echo "Skip temp build fw QA test ..."
                     return
                 }
 

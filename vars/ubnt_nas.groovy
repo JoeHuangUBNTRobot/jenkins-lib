@@ -5,7 +5,6 @@ def generate_buildinfo(Map git_args) {
     println git_args
     def ref_path = [] + git_args.repository
     def dir_name = 'unknown'
-    def latest_path = [] + git_args.repository
     def pkgs_path = [] + git_args.repository
     def ref = git_args.ref
     def ref_sha = git_helper.sha(ref)
@@ -13,24 +12,27 @@ def generate_buildinfo(Map git_args) {
     if (git_args.is_tag) {
         dir_name = 'tags'
         ref_path = ref_path + dir_name + ref
-        latest_path = latest_path + 'tags' + ref + 'latest'
     } else if (git_args.is_pr) {
         dir_name = 'prs'
         ref_path = ref_path + dir_name + "PR-${env.CHANGE_ID}"
-        latest_path = latest_path + dir_name + "PR-${env.CHANGE_ID}" + 'latest'
     } else {
         def branch = ref.replaceAll('^origin/', '')
         dir_name = 'heads'
         ref_path = ref_path + dir_name + branch
-        latest_path = latest_path + dir_name + branch + 'latest'
     }
     pkgs_path = pkgs_path + 'pkgs'
+
+    if (git_args.is_temp_build) {
+        String temp_dir_name = git_args.temp_dir_name ?: 'tmp'
+        ref_path += temp_dir_name
+        pkgs_path += temp_dir_name
+    }
 
     println "PATH: ${ref_path.join('/')}"
 
     def output_dir = [BUILD_NUMBER, git_args.rev_num, git_helper.short_sha(ref_sha)].join('-')
     output.path = ref_path + output_dir
-    output.latest_path = latest_path
+    output.latest_path = ref_path + 'latest'
     output.pkgs_path = pkgs_path
     output.ref_path = ref_path
     output.job_path = output_dir
