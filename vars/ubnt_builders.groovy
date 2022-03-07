@@ -704,7 +704,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     def url = "${url_domain}/${fw_path}"
                     echo "url: $url"
 
-                    if (name == 'UDMPROSE' || name == 'UDR' || name == 'UDW') {
+                    if (name == 'UDMPROSE' || name == 'UDR' || name == 'UDW' || name == 'UDMPRO' || name == 'UDMBASE') {
                         withCredentials([string(
                             credentialsId: 'IEV_JENKINS_TOKEN',
                             variable:'jobtoken')]) {
