@@ -795,7 +795,7 @@ def disk_quota_builder(String productSeries, Map job_options=[:], Map build_seri
 
 def analytic_report_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64'])
+    return debpkg(job_options, ['stretch/arm64', 'bullseye/arm64'])
 }
 
 def debbox_base_files_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
