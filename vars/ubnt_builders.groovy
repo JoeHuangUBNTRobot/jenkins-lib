@@ -790,7 +790,7 @@ def disk_smart_mon_builder(String productSeries, Map job_options=[:], Map build_
 
 def disk_quota_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
     echo "build $productSeries"
-    return debpkg(job_options, ['stretch/arm64'])
+    return debpkg(job_options, ['stretch/all', 'bullseye/all'])
 }
 
 def analytic_report_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
