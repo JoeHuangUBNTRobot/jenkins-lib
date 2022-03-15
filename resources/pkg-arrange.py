@@ -44,7 +44,7 @@ class PkgMkInfo:
     def generate_makefile(self, makefile, base_url):
         variable_name_prefix = self.name.upper().replace('-', '_')
         variable_pkg_name = '{}_PKG_NAME'.format(variable_name_prefix)
-        variable_pkg_version = '{}_VERSION'.format(variable_name_prefix)
+        variable_pkg_version = '$(value {}_$(_distro)_VERSION)'.format(variable_name_prefix)
         variable_base_url = '{}_BASEURL'.format(variable_name_prefix)
 
         arch = '$(_arch)'
@@ -72,9 +72,6 @@ class PkgMkInfo:
                     variable_name_prefix, multi_name.replace('/', '_'),
                     md5sum))
 
-        makefile.write('\n{}:=$(value {}_$(_distro)_VERSION)\n'.format(
-            variable_pkg_version, variable_name_prefix))
-
         base_url = '/'.join([
             base_url,
             self.series,
@@ -84,7 +81,7 @@ class PkgMkInfo:
             base_url += '/$({})'.format(info['multi_var_name'])
 
         makefile.write('{}:={}\n\n'.format(variable_base_url, base_url))
-        makefile.write('PKG_FILE:=$({})_$({})_{}.deb\n'.format(
+        makefile.write('PKG_FILE:=$({})_{}_{}.deb\n'.format(
             variable_pkg_name, variable_pkg_version, arch))
 
         if info['multi_var_name']:
