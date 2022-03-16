@@ -24,6 +24,7 @@ aws_rollback() {
 [ $# -gt 0 ] || usage
 
 AWS_PROFILE=${1}
+AWS_REGION=${2:-us-west-2}
 AWS_CREDENTIALS_FILE=${HOME}/.aws/credentials
 AWS_PREV_CREDENTIALS_FILE=${HOME}/.aws/prev-credentials
 
@@ -81,6 +82,7 @@ AWS_ACCESS_KEY_STATUS=$(echo "${res}" | $JQ -r '.AccessKey.Status')
 
 echo "Setting new access key"
 $AWS configure set output json
+$AWS configure set region ${AWS_REGION}
 $AWS configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
 $AWS configure set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
 
