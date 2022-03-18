@@ -176,10 +176,10 @@ def get_multi_var_name(pkg_name):
 
 
 def deb_pkg_name_parser(name):
-    tokens = re.split(r'[._]', name)
+    tokens = re.split(r'[_]', name)
     pkg_name = tokens[0]
-    pkg_version = '.'.join(tokens[1:-1])
-    pkg_arch = tokens[-1]
+    pkg_version = tokens[1]
+    pkg_arch = re.split(r'[.]', tokens[2])[0]
     pkg_series = get_pkg_series(pkg_name)
     return pkg_name, pkg_version, pkg_arch, pkg_series
 
@@ -273,7 +273,7 @@ def generate_makefile(args):
             continue
         print('Generate {}\'s makefile with version {}'.format(
             p.name, version))
-        with (makefile_dir / p.name).with_suffix('.mk').open('w') as f:
+        with (makefile_dir / (p.name + '.mk')).open('w') as f:
             p.generate_makefile(f, args.pkg_url_base)
 
 
