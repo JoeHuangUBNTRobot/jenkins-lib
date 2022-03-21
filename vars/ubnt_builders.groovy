@@ -886,13 +886,13 @@ def debpkg(Map job_options, configs=['stretch/all']) {
                 m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
                 print m.upload_info
                 configs.each { config ->
-                    def extra = ''
                     def (distribution, arch) = config.split('/')
                     def builder = "$distribution-arm64"
+                    def extra = "DIST=${distribution}"
 
                     if (arch != 'all') {
                         builder = "${distribution}-${arch}"
-                        extra = "DEB_TARGET_ARCH=${arch}"
+                        extra += " DEB_TARGET_ARCH=${arch}"
                     }
 
                     def dockerRegistry = get_docker_registry()
