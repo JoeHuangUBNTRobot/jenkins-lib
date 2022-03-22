@@ -372,6 +372,7 @@ def debfactory_non_cross_builder(String productSeries, Map job_options=[:], Map 
 }
 
 def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
+    def node_semaphore = 0
     def semaphore = 0
     def upload_semaphore = 0
     def total_job = 0
@@ -470,6 +471,17 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             pre_checkout_steps: { m->
                 // do whatever you want before checkout step
                 sh 'export'
+
+                lock("debbox_builder-${env.BUILD_NUMBER}") {
+                    node_semaphore = node_semaphore + 1
+                    println "node semaphore: $node_semaphore"
+                }
+                
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitUntil {
+                        node_semaphore == total_job
+                    }
+                }
                 return true
             },
             build_steps: { m->
