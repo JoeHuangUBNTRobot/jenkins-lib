@@ -471,7 +471,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             pre_checkout_steps: { m->
                 // do whatever you want before checkout step
                 sh 'export'
-
                 lock("debbox_builder-${env.BUILD_NUMBER}") {
                     node_semaphore = node_semaphore + 1
                     println "node semaphore: $node_semaphore"
@@ -599,6 +598,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
                                     bash "AWS_PROFILE=default GITCACHE=${kcache} PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} DIST=${m.dist} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
                                 }
+                                println "Build completed: $m.name"
                                 lock("debbox_builder-${env.BUILD_NUMBER}") {
                                     semaphore = semaphore + 1
                                     println "semaphore: $semaphore"
