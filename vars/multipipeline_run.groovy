@@ -1,5 +1,12 @@
 sz = 0
 def call(String project, String build_target, Map build_series=[:], Map job_options=[:]) {
+    // define job properties here
+    if ( project == "debfactory_builder" || 
+        project == "debfactory_non_cross_builder" ||
+        project == "debbox_builder" ) {
+        properties([disableConcurrentBuilds()])
+        //properties([disableConcurrentBuilds(abortPrevious: true)])
+    }
     timestamps {
         def parallel_jobs = [:]
 
@@ -33,7 +40,6 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
                     }
                     return [:]
                 }
-                
                 if (current_jobs.size() > 0) {
                     sz = current_jobs.size()
                     println "current_job.size() = $sz"
