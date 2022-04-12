@@ -721,7 +721,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                             credentialsId: 'IEV_JENKINS_TOKEN',
                             variable:'jobtoken')]) {
                             def HOST="kyiv-vega.rad.ubnt.com"
-                            def JOB="Udm_FW_Dispatcher"
+                            def JOB="UGW_FW_Dispatcher"
                             def job_info = m.upload_info.path.join('_')
                             def fw_name = "${m.git_args.local_branch}.${m.git_args.rev_num}"
                             def data = "BRANCH=${m.git_args.local_branch}" +
