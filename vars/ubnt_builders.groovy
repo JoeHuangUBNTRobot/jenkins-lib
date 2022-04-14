@@ -468,6 +468,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             project_cache_location: (job_options.project_cache_location ?: 'debbox.git'),
             upload: job_options.upload ?: false,
             dist: job_options.dist ?: "stretch",
+            arch: target_map.arch ?: "arm64",
             pre_checkout_steps: { m->
                 // do whatever you want before checkout step
                 sh 'export'
@@ -500,7 +501,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                         if (productSeries == 'NX') {
                             dockerImage = docker.image("$dockerRegistry/ubuntu:nx")
                         } else {
-                            dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-${m.dist}-arm64:latest")
+                            dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-${m.dist}-${m.arch}:latest")
                         }
                         dockerImage.pull()
                         def docker_args = get_docker_args(m.docker_artifact_path) + " -v ${aws_rotate.get_aws_dir()}:/root/.aws:ro"
