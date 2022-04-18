@@ -835,7 +835,7 @@ def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_seri
     echo "build $productSeries"
 
     // stretch/amd64 could not build successfully
-    return debpkg(job_options, ['stretch/arm64', 'bullseye/arm64'])
+    return debpkg(job_options, ['stretch/arm64', 'bullseye/arm64', 'bullseye/amd64'])
 }
 /*
  * A general package build function
