@@ -127,7 +127,7 @@ def tpe_qa_test(Map nasInfo, Map metaInfo) {
     def isBlockBuild = false
     def auth = CredentialsAuth(credentials: 'jenkins8787-trigger')
     def job = null
-    if (name == 'UNVR') {
+    if (metaInfo['name'] == 'UNVR') {
         job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UNVR_smoke_entry",
                                 blockBuildUntilComplete: isBlockBuild,
                                 parameters: params,
