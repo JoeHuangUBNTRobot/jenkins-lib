@@ -26,6 +26,11 @@ def call(Map args) {
                 try {
                     echo "ubnt_general_build run ${m.name}"
                     stage("Running ${m.name} build process") {
+                        if(m.containsKey('pre_steps')) {
+                            stage("pre_steps ${m.name}") {
+                                m['pre_steps'](m)
+                            }
+                        }
                         // do pre_checkout_steps
                         if (m.containsKey('pre_checkout_steps')) {
                             m['pre_checkout_steps'](m)
@@ -41,6 +46,12 @@ def call(Map args) {
                         // cleanup archive
                         if (m.containsKey('archive_cleanup_steps')) {
                             m['archive_cleanup_steps'](m)
+                        }
+
+                        if(m.containsKey('post_steps')) {
+                            stage("post_steps ${m.name}") {
+                                m['post_steps'](m)
+                            }
                         }
                         // qa test
                         if (m.containsKey('qa_test_steps')) {

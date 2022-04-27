@@ -32,6 +32,7 @@ def generate_buildinfo(Map git_args) {
 
     def output_dir = [BUILD_NUMBER, git_args.rev_num, git_helper.short_sha(ref_sha)].join('-')
     output.path = ref_path + output_dir
+    
     output.latest_path = ref_path + 'latest'
     output.pkgs_path = pkgs_path
     output.ref_path = ref_path
@@ -40,6 +41,9 @@ def generate_buildinfo(Map git_args) {
     return output
 }
 
+def get_temp_dir() {
+    return 'build-temp/'
+}
 def recursive_touch(base_path, latest_path) {
     sh("a=$latest_path; while [ \"\$a\" != \"$base_path\" ]; do touch -m \$a; a=\$(dirname \$a); done")
 }
@@ -50,6 +54,39 @@ def get_nasdir() {
 
 def get_nasdomain() {
     return 'http://tpe-judo.rad.ubnt.com/build'
+}
+
+def move(src_path, dst_path) {
+    def nasinfo = [:]
+    def nasdomain = get_nasdomain()
+    def nasdir = get_nasdir()
+    def notmounted = sh_output.status_code("mountpoint -q $nasdir")
+    if (!notmounted) {
+        src_path = "$nasdir/$src_path"
+        dst_path = "$nasdir/$dst_path"
+        def dst_token = dst_path.tokenize('/')
+        dst_token.pop()
+        def latest_path = '/'+ dst_token.join('/') + '/latest'
+        println "Move from $src_path/* to $dst_path"
+        sh "mkdir -p $dst_path"
+        sh "mv -f $src_path/* $dst_path"
+        println "latest_path: $latest_path" 
+        sh "ln -srfT $dst_path $latest_path"
+        if (dst_path.contains("debbox")) {
+            def dst_basename = dst_path.tokenize("/").pop()
+            try {
+                def output_path = sh_output("realpath ${dst_path}/*/*")
+                output_path.split('\n').each {
+                    artifact_name = it.tokenize('/').pop()
+                    artifact_url = it.replace(nasdir, nasdomain)
+                    nasinfo[artifact_url] = artifact_name
+                }
+            } catch (Exception e) {
+                    //build failed: do nothing
+            }
+        }
+    }
+    return nasinfo
 }
 
 def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="") {
@@ -63,21 +100,21 @@ def upload(src_path, dst_path, latest_path, link_subdir = false, pkgs_path="") {
         println "upload from $src_path to $nas_path"
         sh "mkdir -p $nas_path"
         sh "cp -rp $src_path $nas_path"
-        if (nas_path.contains('debbox')) {
-            def src_basename = src_path.tokenize('/').pop()
-            try {
-                def output_path = sh_output("realpath ${nas_path}/${src_basename}/*")
-                output_path.split('\n').each {
-                    artifact_name = it.tokenize('/').pop()
-                    artifact_url = it.replace(nasdir, nasdomain)
-                    nasinfo[artifact_name] = artifact_url
-                }
-                println "nasinfo: $nasinfo"
-            }
-            catch (Exception e) {
-            // build failed: do nothing
-            }
-        }
+        // if (nas_path.contains('debbox')) {
+        //     def src_basename = src_path.tokenize('/').pop()
+        //     try {
+        //         def output_path = sh_output("realpath ${nas_path}/${src_basename}/*")
+        //         output_path.split('\n').each {
+        //             artifact_name = it.tokenize('/').pop()
+        //             artifact_url = it.replace(nasdir, nasdomain)
+        //             nasinfo[artifact_name] = artifact_url
+        //         }
+        //         println "nasinfo: $nasinfo"
+        //     }
+        //     catch (Exception e) {
+        //     // build failed: do nothing
+        //     }
+        // }
 
         lock('nas_upload') {
             if (link_subdir) {

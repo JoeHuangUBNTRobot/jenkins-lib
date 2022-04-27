@@ -18,6 +18,128 @@ def is_uof_test_branch(branchName) {
     return is_qa_test_branch(branchName)
 }
 
+def test_uof_branch(Map nasInfo, Map metaInfo) {
+    if(!is_uof_test_branch(metaInfo['br']))
+        return
+    withCredentials([
+        string(credentialsId: 'uofusertoken', variable:'usertoken'),
+        string(credentialsId: 'uofjobentrypointtoken', variable:'jobentrytoken')
+        ]) {
+            def fw_url = metaInfo['fwInfo'][metaInfo.product]['fw_url']
+            def HOST = "10.2.0.141:5680"
+            def data_list = ["",
+                "\"cause=builder-trigger\"",
+                "\"token=${jobentrytoken}\"",
+                "\"IS_TAG_BUILD=${metaInfo['is_tag'] ? 'true' : 'false'}\"",
+                "\"IS_PR_BUILD=${metaInfo['is_pr'] ? 'true' : 'false'}\"",
+                "\"PRODUCT=${metaInfo['product']}\"",
+                "\"THREAD_ID=${metaInfo['uofSlackResp'] ? metaInfo['uofSlackResp'].threadId : ''}\"",
+                "\"FW_URL=${fw_url}\""
+            ]
+            print data_list
+            sh "curl ${data_list.join(' --data-urlencode ')} --user ubnt:${usertoken} \"http://${HOST}/job/job-entry-point/buildWithParameters\""
+            return
+    }
+}
+
+def iev_qa_test(Map nasInfo, Map metaInfo) {
+    if (!metaInfo['is_tag'] && !metaInfo['is_pr'] && !is_qa_test_branch(metaInfo['br'])) {
+        echo "Skip IEV QA test ..."
+        return
+    }
+    def name = metaInfo['name']
+    def uploadInfo = metaInfo['uploadInfo']
+    def gitInfo = metaInfo['gitInfo']
+    if (name == 'UDMPROSE' || name == 'UDR' || name == 'UDW' || name == 'UDMPRO' || name == 'UDMBASE') {
+        withCredentials([string(
+            credentialsId: 'IEV_JENKINS_TOKEN',
+            variable:'jobtoken')]) {
+            def HOST="kyiv-vega.rad.ubnt.com"
+            def JOB="UGW_FW_Dispatcher"
+            def job_info = uploadInfo.path.join('_')
+            def fw_link = metaInfo['fwInfo'][metaInfo.product]['fw_link']
+            //debbox, heads, task/test-jenkins-lib, 20-7321-1d184627e
+            def fw_name = "${gitInfo.local_branch}.${gitInfo.rev_num}"
+            // task/test-jenkins-lib, 7321
+            def data = "BRANCH=${gitInfo.local_branch}" +
+                "&FW_NAME=${fw_name}" +
+                "&FW_DIR=${uploadInfo.dir_name}" +
+                "&BUILD_TYPE=${metaInfo.product}" +
+                "&FW_VERSION=${job_info}" +
+                "&FW_URL=${fw_link}" +
+                "&FW_COMMIT=${gitInfo.revision}"
+            print data
+            sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
+            // def udmpse_json = "\'{\"parameter\": " +
+            //                   "[{\"name\":\"BRANCH\", \"value\":\"${m.git_args.local_branch}\"}, " +
+            //                   "{\"name\":\"FW_NAME\", \"value\":\"${fw_name}\"}, " +
+            //                   "{\"name\":\"FW_DIR\", \"value\":\"${m.upload_info.dir_name}}\"}, " +
+            //                   "{\"name\":\"BUILD_TYPE\", \"value\":\"${target_map.product}\"}, " +
+            //                   "{\"name\":\"FW_VERSION\", \"value\":\"${job_info}\"}, " +
+            //                   "{\"name\":\"FW_URL\", \"value\":\"${url}\"}, " +
+            //                   "{\"name\":\"FW_COMMIT\", \"value\":\"${m.git_args.revision}\"}]}\'"
+            // sh "curl -k -X POST \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\" --data-urlencode json=${udmpse_json}"
+        }
+    }
+}
+
+def net_qa_test(Map nasInfo, Map metaInfo) {
+    if (!metaInfo['is_tag'] && !metaInfo['is_pr'] && !is_qa_test_branch(metaInfo['br'])) {
+        echo "Skip NET QA test ..."
+        return
+    }
+    if(metaInfo['name'] != 'UCKP') {
+        return
+    }
+    def uploadInfo = metaInfo['uploadInfo']
+    def gitInfo = metaInfo['gitInfo']
+    def fw_url = metaInfo['fwInfo'][metaInfo.product]['fw_url']
+    withCredentials([string(
+        credentialsId: 'NET_JENKINS_TOKEN',
+        variable: 'jobtoken')]) {
+        def HOST = "jenkins.network-controller-prod.a.uidev.tools"
+        def JOB = "unifi-network-be-e2e-tests/network-e2e-cloudkey-firmware-trigger"
+        def job_info = uploadInfo.path.join('_')
+        def fw_name = "${gitInfo.local_branch}.${gitInfo.rev_num}"
+        def data = "BRANCH=${gitInfo.local_branch}" +
+                "&FW_NAME=${fw_name}" +
+                "&FW_DIR=${uploadInfo.dir_name}" +
+                "&BUILD_TYPE=${metaInfo.product}" +
+                "&FW_VERSION=${job_info}" +
+                "&FW_URL=${fw_url}" +
+                "&FW_COMMIT=${gitInfo.revision}"
+        print data
+        sh "curl -k -d \"${data}\" \"https://${HOST}/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
+    }
+}
+
+def tpe_qa_test(Map nasInfo, Map metaInfo) {
+    if (!metaInfo['is_tag'] && !metaInfo['is_pr'] && !is_qa_test_branch(metaInfo['br'])) {
+        echo "Skip tpe QA test ..."
+        return
+    }
+    if(metaInfo['name'] == 'UDWPRO' || metaInfo['name'] == 'UDMBASE') {
+        echo "Skip tpe un-support model ..."
+        return
+    }
+    def fw_url = metaInfo['fwInfo'][metaInfo.product]['fw_url']
+    def params = "fw_url=${fw_url}\nslack_channel=${metaInfo.slackThreadId}"
+    def isBlockBuild = false
+    def auth = CredentialsAuth(credentials: 'jenkins8787-trigger')
+    def job = null
+    if (name == 'UNVR') {
+        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UNVR_smoke_entry",
+                                blockBuildUntilComplete: isBlockBuild,
+                                parameters: params,
+                                auth: auth
+    } else {
+        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/${metaInfo.name}_smoke_test",
+                                blockBuildUntilComplete: isBlockBuild,
+                                parameters: params,
+                                auth: auth
+    }
+}
+
 def get_ids() {
     def username = sh_output("whoami")
     def uid = sh_output("id -zu $username")
@@ -372,10 +494,6 @@ def debfactory_non_cross_builder(String productSeries, Map job_options=[:], Map 
 }
 
 def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
-    def node_semaphore = 0
-    def semaphore = 0
-    def upload_semaphore = 0
-    def total_job = 0
     def debbox_series = [
         UCK:
         [
@@ -431,6 +549,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
     def is_atag = env.getProperty('TAG_NAME') != null
     def build_product = build_series[productSeries]
     def build_jobs = []
+    def job_shared = [:]
     Boolean is_temp_build = job_options.is_temp_build ?: false
 
     def slackThreadId = null
@@ -444,23 +563,82 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
         uofSlackResp = slackSend(channel: 'unifi-os-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good", iconEmoji: ":pepe-sad:")
     }
     build_product.each { name, target_map ->
-
+        def product_shared = [:]
         if (is_tag && productSeries == 'UNIFICORE') {
             def current_tag_prefix = TAG_NAME.tokenize('/')[0]
             if (current_tag_prefix != target_map.tag_prefix) {
                 return
             }
         }
-        lock("debbox_builder-${env.BUILD_NUMBER}") {
-           total_job = total_job + 1
-           println "total_job: $total_job"
-        }
         build_jobs.add([
-            node: is_pr ? 'debbox-PR' : (job_options.node ?: 'debbox'),
+            node: 'debbox',
+            execute_order: 3,
+            name: target_map.product + '-3',
+            build_status:false,
+            pre_steps: { m->
+                // merge three maps
+                product_shared.each {k, v->
+                    if(!m.containsKey(k) && !k.contains('_steps')) {
+                        m[k] = v
+                    }
+                }
+                job_shared.each { k, v->
+                    if(!m.containsKey(k) && !k.contains('_steps')) {
+                        m[k] = v
+                    }
+                }
+                println(m)
+            },
+            qa_test_steps: { m->
+                println(m.upload_info)
+                if (m.name.contains('fcd')) {
+                    echo "Skip fcd fw QA test ..."
+                    return
+                }
+                if (is_temp_build) {
+                    echo "Skip temp build fw QA test ..."
+                    return
+                }
+                def metaInfo = [:]
+                metaInfo['name'] = name //UDR, UDW
+                metaInfo['product'] = target_map.product //uck-g2.apq8053, udr.mt7622
+                metaInfo['br'] = BRANCH_NAME
+                metaInfo['is_tag'] = is_tag
+                metaInfo['is_pr'] = is_pr
+                metaInfo['uofSlackResp'] = uofSlackResp
+                metaInfo['slackThreadId'] = slackThreadId
+                metaInfo['uploadInfo'] = m.upload_info
+                metaInfo['gitInfo'] = m.git_args
+                /* 
+                product: {
+                    'fw_link' : https://xxx/FW.LATEST.bin
+                    'fw_url' : https://xxx/UNVRPRO.al324.v2.5.0+root.7378.66d3fa1.220408.2323.bin
+                }
+                */
+                def fwInfo = [:]
+                m.nasinfo.each { url, artifact ->
+                    if (artifact.endsWith(".bin") && url.contains(target_map.product)) {
+                        if(!fwInfo.containsKey(target_map.product)) {
+                            fwInfo[target_map.product] = [:]
+                        }
+                        println(fwInfo)
+                        fwInfo[target_map.product]['fw_url'] = url
+                        fwInfo[target_map.product]['fw_link'] = url.replace(/$artifact/, 'FW.LATEST.bin')
+                    }
+                }
+                metaInfo['fwInfo'] = fwInfo
+                test_uof_branch(m.nasinfo, metaInfo)
+                iev_qa_test(m.nasinfo, metaInfo)
+                net_qa_test(m.nasinfo, metaInfo)
+                tpe_qa_test(m.nasinfo, metaInfo)
+            }
+        ])
+        build_jobs.add([
+            node: 'debbox',
             name: target_map.product,
+            execute_order: 1,
             resultpath: target_map.resultpath,
             additional_store: target_map.additional_store ?: [],
-            execute_order: 1,
             artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
             pack_bootloader: target_map.pack_bootloader ?: 'yes',
             build_status:false,
@@ -472,16 +650,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             pre_checkout_steps: { m->
                 // do whatever you want before checkout step
                 sh 'export'
-                lock("debbox_builder-${env.BUILD_NUMBER}") {
-                    node_semaphore = node_semaphore + 1
-                    println "node semaphore: $node_semaphore"
-                }
-                
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitUntil {
-                        node_semaphore == total_job
-                    }
-                }
                 return true
             },
             build_steps: { m->
@@ -600,10 +768,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                     bash "AWS_PROFILE=default GITCACHE=${kcache} PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} DIST=${m.dist} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
                                 }
                                 println "Build completed: $m.name"
-                                lock("debbox_builder-${env.BUILD_NUMBER}") {
-                                    semaphore = semaphore + 1
-                                    println "semaphore: $semaphore"
-                                }
                                 sh 'cp make.log /root/artifact_dir/'
                                 sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
                                 sh "cp build/${m.resultpath}/bootstrap/root/usr/lib/version /root/artifact_dir/"
@@ -615,12 +779,6 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                                 m.additional_store.each { additional_file ->
                                     sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
                                 }
-                                timeout(time: 2, unit: 'HOURS') {
-                                    waitUntil {
-                                        semaphore == total_job
-                                    }
-                                }
-
                             }
                             catch (Exception e) {
                                 // Due to we have the build error, remove all at here
@@ -641,18 +799,14 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
             archive_steps: { m->
                 stage('Upload to server') {
                     if (m.upload && m.containsKey('upload_info')) {
+                        // upload "TO" path
                         def upload_path = m.upload_info.path.join('/')
-                        def latest_path = m.upload_info.latest_path.join('/')
-                        m.nasinfo = ubnt_nas.upload(m.docker_artifact_path, upload_path, latest_path)
-                    }
-                    lock("debbox_builder-${env.BUILD_NUMBER}") {
-                        upload_semaphore = upload_semaphore + 1
-                        println "upload_semaphore: $upload_semaphore"
-                    }
-                    timeout(time: 1, unit: 'HOURS') {
-                        waitUntil {
-                            upload_semaphore == total_job
-                        }
+                        def temp_path = ubnt_nas.get_temp_dir() + upload_path
+                        def latest_path = ubnt_nas.get_temp_dir() + m.upload_info.latest_path.join('/')
+                        ubnt_nas.upload(m.docker_artifact_path, temp_path, latest_path)
+                        job_shared['job_upload_info'] = [:]
+                        job_shared['job_upload_info']['upload_src_path'] = temp_path
+                        job_shared['job_upload_info']['upload_dst_path'] = upload_path
                     }
                 }
             },
@@ -668,131 +822,28 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                     }
                 }
             },
-            qa_test_steps: { m->
-                if (m.name.contains('fcd')) {
-                    echo "Skip fcd fw QA test ..."
-                    return
-                }
-                if (is_temp_build) {
-                    echo "Skip temp build fw QA test ..."
-                    return
-                }
+            post_steps: { m->
+                product_shared = m.clone()
+            }
+        ])
 
-                if (is_uof_test_branch(BRANCH_NAME)) {
-                    if (m.containsKey('upload_info')) {
-                        withCredentials([
-                            string(credentialsId: 'uofusertoken', variable:'usertoken'),
-                            string(credentialsId: 'uofjobentrypointtoken', variable:'jobentrytoken')
-                            ]) {
-                            m.nasinfo.each { key, value ->
-                                if (key.endsWith(".bin")) {
-                                    def HOST = "10.2.0.141:5680"
-                                    def data_list = ["",
-                                        "\"cause=builder-trigger\"",
-                                        "\"token=${jobentrytoken}\"",
-                                        "\"IS_TAG_BUILD=${is_tag ? 'true' : 'false'}\"",
-                                        "\"IS_PR_BUILD=${is_pr ? 'true' : 'false'}\"",
-                                        "\"PRODUCT=${name}\"",
-                                        "\"THREAD_ID=${uofSlackResp ? uofSlackResp.threadId : ''}\"",
-                                        "\"FW_URL=${value}\""
-                                    ]
-                                    print data_list
-                                    sh "curl ${data_list.join(' --data-urlencode ')} --user ubnt:${usertoken} \"http://${HOST}/job/job-entry-point/buildWithParameters\""
-                                    return
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (!is_tag && !is_pr && !is_qa_test_branch(BRANCH_NAME)) {
-                    echo "Skip QA test ..."
-                    return
-                }
-                def url_domain = 'http://tpe-judo.rad.ubnt.com/build'
-                if (m.containsKey('upload_info')) {
-                    def upload_path = m.upload_info.path.join('/')
-                    def relative_path = "${upload_path}/${m.name}/FW.LATEST.bin"
-                    def fw_path = ubnt_nas.get_fw_linkpath(relative_path)
-                    def url = "${url_domain}/${fw_path}"
-                    echo "url: $url"
-
-                    if (name == 'UDMPROSE' || name == 'UDR' || name == 'UDW' || name == 'UDMPRO' || name == 'UDMBASE') {
-                        withCredentials([string(
-                            credentialsId: 'IEV_JENKINS_TOKEN',
-                            variable:'jobtoken')]) {
-                            def HOST="kyiv-vega.rad.ubnt.com"
-                            def JOB="UGW_FW_Dispatcher"
-                            def job_info = m.upload_info.path.join('_')
-                            def fw_name = "${m.git_args.local_branch.split('/')[-1]}.${m.git_args.rev_num}"
-                            def data = "BRANCH=${m.git_args.local_branch}" +
-                                "&FW_NAME=${fw_name}" +
-                                "&FW_DIR=${m.upload_info.dir_name}" +
-                                "&BUILD_TYPE=${target_map.product}" +
-                                "&FW_VERSION=${job_info}" +
-                                "&FW_URL=${url_domain}/${relative_path}" +
-                                "&FW_COMMIT=${m.git_args.revision}"
-                            print data
-                            sh "curl -k -d \"${data}\" \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
-                            // def udmpse_json = "\'{\"parameter\": " +
-                            //                   "[{\"name\":\"BRANCH\", \"value\":\"${m.git_args.local_branch}\"}, " +
-                            //                   "{\"name\":\"FW_NAME\", \"value\":\"${fw_name}\"}, " +
-                            //                   "{\"name\":\"FW_DIR\", \"value\":\"${m.upload_info.dir_name}}\"}, " +
-                            //                   "{\"name\":\"BUILD_TYPE\", \"value\":\"${target_map.product}\"}, " +
-                            //                   "{\"name\":\"FW_VERSION\", \"value\":\"${job_info}\"}, " +
-                            //                   "{\"name\":\"FW_URL\", \"value\":\"${url}\"}, " +
-                            //                   "{\"name\":\"FW_COMMIT\", \"value\":\"${m.git_args.revision}\"}]}\'"
-                            // sh "curl -k -X POST \"https://${HOST}/jenkins/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\" --data-urlencode json=${udmpse_json}"
-                        }
-                    }
-                    if (name == 'UCKP') {
-                        withCredentials([string(
-                                credentialsId: 'NET_JENKINS_TOKEN',
-                                variable: 'jobtoken')]) {
-                            def HOST = "jenkins.network-controller-prod.a.uidev.tools"
-                            def JOB = "unifi-network-be-e2e-tests/network-e2e-cloudkey-firmware-trigger"
-                            def job_info = m.upload_info.path.join('_')
-                            def fw_name = "${m.git_args.local_branch}.${m.git_args.rev_num}"
-                            def data = "BRANCH=${m.git_args.local_branch}" +
-                                    "&FW_NAME=${fw_name}" +
-                                    "&FW_DIR=${m.upload_info.dir_name}" +
-                                    "&BUILD_TYPE=${target_map.product}" +
-                                    "&FW_VERSION=${job_info}" +
-                                    "&FW_URL=${url}" +
-                                    "&FW_COMMIT=${m.git_args.revision}"
-                            print data
-                            sh "curl -k -d \"${data}\" \"https://${HOST}/buildByToken/buildWithParameters/build?job=${JOB}&token=${jobtoken}\""
-                        }
-                    }
-
-                    // skip UDWPRO, UDK, UDMBASE test
-                    if (name == 'UDWPRO' || name == 'UDK' || name == 'UDMBASE') {
-                        echo "Skip un-support model ..."
-                        return
-                    }
-
-                    def params = "fw_url=${url}\nslack_channel=${slackThreadId}"
-                    def isBlockBuild = false
-                    def auth = CredentialsAuth(credentials: 'jenkins8787-trigger')
-                    def job = null
-                    if (name == 'UNVR') {
-                        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/UNVR_smoke_entry",
-                                               blockBuildUntilComplete: isBlockBuild,
-                                               parameters: params,
-                                               auth: auth
-                    } else {
-                        job = triggerRemoteJob job: "https://tpe-pbsqa-ci.rad.ubnt.com:8443/job/Debbox/job/${name}_smoke_test",
-                                               blockBuildUntilComplete: isBlockBuild,
-                                               parameters: params,
-                                               auth: auth
-                    }
-
-                    // currentBuild.result = job.getBuildResult().toString()
+    }
+    build_jobs.add([
+        node: 'debbox',
+        execute_order: 2,
+        name: 'upload',
+        build_status:false,
+        build_steps: { m->
+            stage('Move to server') {
+                if(job_shared.containsKey('job_upload_info')) {
+                    def src_path = job_shared.job_upload_info['upload_src_path']
+                    def dst_path = job_shared.job_upload_info['upload_dst_path']
+                    m.nasinfo = ubnt_nas.move(src_path, dst_path)
+                    job_shared['nasinfo'] = m.nasinfo.clone()
                 }
             }
-
-        ])
-    }
+        }
+    ])
     return build_jobs
 }
 

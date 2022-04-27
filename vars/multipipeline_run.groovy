@@ -79,13 +79,29 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
 
                 mail_body = mail_body + build_job.name + '--- ' +  build_job.build_status + '\n'
 
-                if (build_job.containsKey('nasinfo')) {
-                    display_name = build_job.name.replace('__UPLOAD', '')
-                    jobDesc += "<h5> ${display_name} <h5>"
-                    build_job.nasinfo.each { name, url ->
+                if (build_job.containsKey('nasinfo') && build_job.name == 'upload') {
+                    def arrange_nasinfo = [:]
+                    println(build_job.nasinfo)
+                    build_job.nasinfo.each { url, name ->
                         // product: link
-                        jobDesc += "<a href=\"${url}\">${name}</a>"
-                        jobDesc += '<br>'
+                        def url_token = url.tokenize('/')
+                        def display_name = 'artifact'
+                        if(url_token.size() >= 2) {
+                            display_name = url_token[-2]
+                        }
+                        if(!arrange_nasinfo.containsKey(display_name)) {
+                            arrange_nasinfo[display_name] = [:]
+                        }
+                        arrange_nasinfo[display_name][url] = name
+                    }
+                    println(arrange_nasinfo)
+
+                    arrange_nasinfo.each { display_name, entry -> 
+                        jobDesc += "<h5> ${display_name} <h5>"
+                        entry.each { url, name ->
+                            jobDesc += "<a href=\"${url}\">${name}</a>"
+                            jobDesc += '<br>'
+                        }
                     }
                 }
             }
