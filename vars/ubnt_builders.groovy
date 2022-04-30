@@ -229,6 +229,13 @@ def get_job_options(String project) {
             name: 'ustd',
             node: 'debfactory',
             upload: false
+        ],
+        rover_builder: [
+            job_artifact_dir: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}",
+            node: 'ROS',
+            upload: true,
+            project_cache: true,
+            project_cache_location: 'debbox.git'
         ]
     ]
 
@@ -609,7 +616,7 @@ def debbox_builder(String productSeries, Map job_options=[:], Map build_series=[
                 metaInfo['slackThreadId'] = slackThreadId
                 metaInfo['uploadInfo'] = m.upload_info
                 metaInfo['gitInfo'] = m.git_args
-                /* 
+                /*
                 product: {
                     'fw_link' : https://xxx/FW.LATEST.bin
                     'fw_url' : https://xxx/UNVRPRO.al324.v2.5.0+root.7378.66d3fa1.220408.2323.bin
@@ -887,6 +894,322 @@ def ubnt_tools_builder(String productSeries, Map job_options=[:], Map build_seri
 
     // stretch/amd64 could not build successfully
     return debpkg(job_options, ['stretch/arm64', 'bullseye/arm64', 'bullseye/amd64'])
+}
+
+def rover_builder(String productSeries, Map job_options=[:], Map build_series=[:]) {
+    def rover_series = [
+        ROVER:[
+            WAVEROVER: [product: 'wave-rover.alpine', resultpath: 'target-wave-rover.alpine', tag_prefix: 'wave-rover', additional_store: ['image/wave-rover-image/uImage', 'image/wave-rover-image/vmlinux', 'image/wave-rover-image/vmlinuz-*'], pack_bootloader: 'yes'],
+        ]
+    ]
+
+    if (build_series.size() == 0) {
+        build_series = rover_series.clone()
+    }
+    verify_required_params('rover_builder', build_series, [ productSeries ])
+    echo "build $productSeries"
+
+    def is_pr = env.getProperty('CHANGE_ID') != null
+    def is_tag = env.getProperty('TAG_NAME') != null
+    def is_atag = env.getProperty('TAG_NAME') != null
+    def build_product = build_series[productSeries]
+    def build_jobs = []
+    def job_shared = [:]
+    Boolean is_temp_build = job_options.is_temp_build ?: false
+
+    def slackThreadId = null
+    /*if ((is_tag || is_pr || is_qa_test_branch(BRANCH_NAME)) && !is_temp_build) {
+        def slackResp = slackSend(channel: 'rover-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good")
+        if (slackResp) slackThreadId = slackResp.threadId
+    }*/
+
+    def uofSlackResp = null
+    /*if (is_uof_test_branch(BRANCH_NAME) && !is_temp_build) {
+        uofSlackResp = slackSend(channel: 'rover-firmware-smoke', message: "[STARTED] ${env.BUILD_URL}", color: "good", iconEmoji: ":pepe-sad:")
+    }*/
+    build_product.each { name, target_map ->
+        def product_shared = [:]
+        if (is_tag && productSeries == 'UNIFICORE') {
+            def current_tag_prefix = TAG_NAME.tokenize('/')[0]
+            if (current_tag_prefix != target_map.tag_prefix) {
+                return
+            }
+        }
+        build_jobs.add([
+            node: 'ROS',
+            execute_order: 3,
+            name: target_map.product + '-3',
+            build_status:false,
+            pre_steps: { m->
+                // merge three maps
+                product_shared.each {k, v->
+                    if(!m.containsKey(k) && !k.contains('_steps')) {
+                        m[k] = v
+                    }
+                }
+                job_shared.each { k, v->
+                    if(!m.containsKey(k) && !k.contains('_steps')) {
+                        m[k] = v
+                    }
+                }
+                println(m)
+            },
+            qa_test_steps: { m->
+                println(m.upload_info)
+                if (m.name.contains('fcd')) {
+                    echo "Skip fcd fw QA test ..."
+                    return
+                }
+                if (is_temp_build) {
+                    echo "Skip temp build fw QA test ..."
+                    return
+                }
+                def metaInfo = [:]
+                metaInfo['name'] = name //UDR, UDW
+                metaInfo['product'] = target_map.product //uck-g2.apq8053, udr.mt7622
+                metaInfo['br'] = BRANCH_NAME
+                metaInfo['is_tag'] = is_tag
+                metaInfo['is_pr'] = is_pr
+                metaInfo['uofSlackResp'] = uofSlackResp
+                metaInfo['slackThreadId'] = slackThreadId
+                metaInfo['uploadInfo'] = m.upload_info
+                metaInfo['gitInfo'] = m.git_args
+                /*
+                product: {
+                    'fw_link' : https://xxx/FW.LATEST.bin
+                    'fw_url' : https://xxx/UNVRPRO.al324.v2.5.0+root.7378.66d3fa1.220408.2323.bin
+                }
+                */
+                def fwInfo = [:]
+                m.nasinfo.each { url, artifact ->
+                    if (artifact.endsWith(".bin") && url.contains(target_map.product)) {
+                        if(!fwInfo.containsKey(target_map.product)) {
+                            fwInfo[target_map.product] = [:]
+                        }
+                        println(fwInfo)
+                        fwInfo[target_map.product]['fw_url'] = url
+                        fwInfo[target_map.product]['fw_link'] = url.replace(/$artifact/, 'FW.LATEST.bin')
+                    }
+                }
+                metaInfo['fwInfo'] = fwInfo
+                test_uof_branch(m.nasinfo, metaInfo)
+                iev_qa_test(m.nasinfo, metaInfo)
+                net_qa_test(m.nasinfo, metaInfo)
+                tpe_qa_test(m.nasinfo, metaInfo)
+            }
+        ])
+        build_jobs.add([
+            node: 'ROS',
+            name: target_map.product,
+            execute_order: 1,
+            resultpath: target_map.resultpath,
+            additional_store: target_map.additional_store ?: [],
+            artifact_dir: job_options.job_artifact_dir ?: "${env.JOB_NAME}_${env.BUILD_TIMESTAMP}_${env.BUILD_NUMBER}_${name}",
+            pack_bootloader: target_map.pack_bootloader ?: 'yes',
+            build_status:false,
+            project_cache: (job_options.project_cache ?: false),
+            project_cache_location: (job_options.project_cache_location ?: 'debbox.git'),
+            upload: job_options.upload ?: false,
+            dist: job_options.dist ?: "stretch",
+            arch: target_map.arch ?: "arm64",
+            pre_checkout_steps: { m->
+                // do whatever you want before checkout step
+                sh 'export'
+                return true
+            },
+            build_steps: { m->
+                stage("Pre-build ${m.name} stage") {
+                    // do whatever you want before building process
+                    m.build_number = env.BUILD_NUMBER
+                    m.build_dir = "${m.name}-${m.build_number}"
+                    m.docker_artifact_path = m.artifact_dir + '/' + m.name
+
+                    sh "mkdir -p ${m.build_dir} ${m.docker_artifact_path}"
+                    m.docker_artifact_path = sh_output("readlink -f ${m.docker_artifact_path}")
+                }
+                stage("Build ${m.name}") {
+                    dir_cleanup("${m.build_dir}") {
+                        def dockerRegistry = get_docker_registry()
+                        def dockerImage
+                        if (productSeries == 'NX') {
+                            dockerImage = docker.image("$dockerRegistry/ubuntu:nx")
+                        } else {
+                            dockerImage = docker.image("$dockerRegistry/debbox-builder-cross-${m.dist}-${m.arch}:latest")
+                        }
+                        dockerImage.pull()
+                        def docker_args = get_docker_args(m.docker_artifact_path) + " -v ${aws_rotate.get_aws_dir()}:/root/.aws:ro"
+                        dockerImage.inside(docker_args) {
+                            /*
+                            * tag build var:
+                            * TAG_NAME: unifi-cloudkey/v1.1.9
+                            *
+                            * pr build var:
+                            * CHANGE_BRANCH: feature/unifi-core-integration
+                            * CHANGE_ID: 32 (pull request ID)
+                            * git_args:
+                            *     user: git
+                            *     site: git.uidev.tools,
+                            *     repository: firmware.debbox
+                            *     revision: git changeset
+                            *     local_branch: feature/unifi-core-integration or unifi-cloudkey/v1.1.9
+                            *     is_pr: true or false
+                            *     is_tag: true or false
+                            *     tag: unifi-cloudkey/v1.1.9 (TAG_NAME)
+                            *     branch_name (feature/unifi-core-integration)
+                            */
+                            def co_map
+                            // open it when we have method to modify the CloneOption without affect others option
+                            // def cache_path = "${project_cache_updater.get_project_cache_dir()}/${m.project_cache_location}"
+                            // scm.extensions = scm.extensions + [[$class: 'CloneOption', reference: "${cache_path}"]]
+                            for(retry = 0; retry < 3; retry++) {
+                                try {
+                                    timeout(time: 10, unit: 'MINUTES') {
+                                        co_map = checkout scm
+                                    }
+                                    break
+                                } catch (e) {
+                                    echo "Timeout during checkout scm"
+                                    sh "rm -rf .git || true"
+                                }
+                            }
+
+                            def url = co_map.GIT_URL
+                            def git_args = git_helper.split_url(url)
+                            def repository = git_args.repository
+                            echo "URL: ${url} -> site: ${git_args.site} " + "owner:${git_args.owner} repo: ${repository}"
+                            git_args.revision = git_helper.sha()
+                            git_args.rev_num = git_helper.rev()
+                            if (is_pr && is_atag) {
+                                error 'Unexpected environment, cannot be both PR and TAG'
+                            }
+                            def ref
+                            if (is_tag) {
+                                ref = TAG_NAME
+                                try {
+                                    git_helper.verify_is_atag(ref)
+                                } catch (all) {
+                                    println "catch error: $all"
+                                    is_atag = false
+                                }
+                                println "tag build: istag: $is_tag, is_atag:$is_atag"
+                                git_args.local_branch = ref
+                            } else if (is_pr) {
+                                // use change branch as ref
+                                ref = "origin/${env.CHANGE_BRANCH}"
+                                git_args.local_branch = "PR-${env.CHANGE_ID}"
+                            } else {
+                                ref = git_helper.current_branch()
+                                if (!ref || ref == 'HEAD') {
+                                    ref = "origin/${BRANCH_NAME}"
+                                }
+                                git_args.local_branch = ref
+                            }
+                            // decide release build logic
+                            def is_release = false
+                            if (is_tag) {
+                                if (is_atag) {
+                                    is_release = true
+                                } else {
+                                    is_release = TAG_NAME.contains('release')
+                                }
+                                is_release = true
+                            }
+                            m.is_release = is_release
+                            git_args.is_pr = is_pr
+                            git_args.is_tag = is_tag
+                            git_args.is_atag = is_atag
+                            git_args.ref = ref
+                            if (is_temp_build) {
+                                git_args.is_temp_build = true
+                                git_args.temp_dir_name = m.dist
+                            }
+                            m['git_args'] = git_args.clone()
+                            m.upload_info = ubnt_nas.generate_buildinfo(m.git_args)
+                            print m.upload_info
+                            try {
+                                def kcache = "${project_cache_updater.get_project_cache_dir()}/debbox-kernel.git"
+                                println "kcache: $kcache"
+                                withEnv(['AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials', 'AWS_CONFIG_FILE=/root/.aws/config']) {
+                                    bash "AWS_PROFILE=default GITCACHE=${kcache} PACK_BOOTLOADER=${m.pack_bootloader} make PRODUCT=${m.name} DIST=${m.dist} RELEASE_BUILD=${is_release} 2>&1 | tee make.log"
+                                }
+                                println "Build completed: $m.name"
+                                sh 'cp make.log /root/artifact_dir/'
+                                sh "cp -r build/${m.resultpath}/dist/* /root/artifact_dir/"
+                                sh "cp build/${m.resultpath}/bootstrap/root/usr/lib/version /root/artifact_dir/"
+                                if (productSeries == 'UNVR' || name.contains('UNVR')) {
+                                    sh "cp -r build/${m.resultpath}/image/unvr-image/uImage /root/artifact_dir/"
+                                    sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinux /root/artifact_dir/"
+                                    sh "cp -r build/${m.resultpath}/image/unvr-image/vmlinuz-* /root/artifact_dir/"
+                                }
+                                m.additional_store.each { additional_file ->
+                                    sh "cp -r build/${m.resultpath}/$additional_file /root/artifact_dir/"
+                                }
+                            }
+                            catch (Exception e) {
+                                // Due to we have the build error, remove all at here
+                                sh "rm -rf /root/artifact_dir"
+                                sh "rm -rf build"
+                                throw e
+                            }
+                            finally {
+                                // In order to cleanup the dl and build directory
+                                sh 'chmod -R 777 .'
+                                deleteDir()
+                            }
+                        }
+                    }
+                }
+                return true
+            },
+            archive_steps: { m->
+                stage('Upload to server') {
+                    if (m.upload && m.containsKey('upload_info')) {
+                        // upload "TO" path
+                        def upload_path = m.upload_info.path.join('/')
+                        def temp_path = ubnt_nas.get_temp_dir() + upload_path
+                        def latest_path = ubnt_nas.get_temp_dir() + m.upload_info.latest_path.join('/')
+                        ubnt_nas.upload(m.docker_artifact_path, temp_path, latest_path)
+                        job_shared['job_upload_info'] = [:]
+                        job_shared['job_upload_info']['upload_src_path'] = temp_path
+                        job_shared['job_upload_info']['upload_dst_path'] = upload_path
+                    }
+                }
+            },
+            archive_cleanup_steps: { m->
+                stage('Cleanup archive') {
+                    try {
+                        dir_cleanup("${m.docker_artifact_path}") {
+                            deleteDir()
+                        }
+                    }
+                    catch (Exception e) {
+                    // do nothing
+                    }
+                }
+            },
+            post_steps: { m->
+                product_shared = m.clone()
+            }
+        ])
+
+    }
+    build_jobs.add([
+        node: 'ROS',
+        execute_order: 2,
+        name: 'upload',
+        build_status:false,
+        build_steps: { m->
+            stage('Move to server') {
+                if(job_shared.containsKey('job_upload_info')) {
+                    def src_path = job_shared.job_upload_info['upload_src_path']
+                    def dst_path = job_shared.job_upload_info['upload_dst_path']
+                    m.nasinfo = ubnt_nas.move(src_path, dst_path)
+                    job_shared['nasinfo'] = m.nasinfo.clone()
+                }
+            }
+        }
+    ])
+    return build_jobs
 }
 /*
  * A general package build function

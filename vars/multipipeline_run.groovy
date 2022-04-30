@@ -1,7 +1,7 @@
 sz = 0
 def call(String project, String build_target, Map build_series=[:], Map job_options=[:]) {
     // define job properties here
-    if ( project == "debfactory_builder" || 
+    if ( project == "debfactory_builder" ||
         project == "debfactory_non_cross_builder" ||
         project == "debbox_builder" ) {
         properties([disableConcurrentBuilds()])
@@ -96,7 +96,7 @@ def call(String project, String build_target, Map build_series=[:], Map job_opti
                     }
                     println(arrange_nasinfo)
 
-                    arrange_nasinfo.each { display_name, entry -> 
+                    arrange_nasinfo.each { display_name, entry ->
                         jobDesc += "<h5> ${display_name} <h5>"
                         entry.each { url, name ->
                             jobDesc += "<a href=\"${url}\">${name}</a>"
